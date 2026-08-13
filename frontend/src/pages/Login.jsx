@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../api/api";
 import React, { useEffect, useState } from "react";
 import {
   Link,
@@ -88,125 +89,83 @@ export default function Login() {
   // HANDLE LOGIN
   // =====================================================
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    setError("");
+  setError("");
+  setLoading(true);
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          username: email.trim().split("@")[0],
+          email: email.trim(),
+          password: password,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(
+        data.detail || "Invalid email or password."
+      );
+      return;
+    }
+
+    const tokenPayload = JSON.parse(
+      atob(
+        data.access_token
+          .split(".")[1]
+          .replace(/-/g, "+")
+          .replace(/_/g, "/")
+      )
+    );
+
+    const userData = {
+      name:
+        tokenPayload.sub?.split("@")[0] ||
+        email.split("@")[0],
+
+      email:
+        tokenPayload.sub ||
+        email.trim(),
+
+      role:
+        tokenPayload.role ||
+        "Employee",
+    };
+
+    login(userData, data.access_token);
+
+    localStorage.setItem(
+      "active_user",
+      JSON.stringify(userData)
+    );
+
+    navigate("/dashboard", {
+      replace: true,
+    });
+
+  } catch (error) {
+    console.error("Login error:", error);
+
+    setError(
+      "Unable to connect to the backend."
+    );
+
+  } finally {
     setLoading(false);
-
-
-    // -----------------------------------------------
-    // GET REGISTERED USER
-    // -----------------------------------------------
-
-    const savedUserData =
-      localStorage.getItem(
-        "user_credentials"
-      );
-
-
-    // -----------------------------------------------
-    // CHECK WHETHER USER EXISTS
-    // -----------------------------------------------
-
-    if (!savedUserData) {
-      setError(
-        "No account found. Please create an account first."
-      );
-
-      return;
-    }
-
-
-    // -----------------------------------------------
-    // SAFELY READ USER DATA
-    // -----------------------------------------------
-
-    let savedUser;
-
-    try {
-      savedUser =
-        JSON.parse(savedUserData);
-    } catch (error) {
-      setError(
-        "Something went wrong. Please register again."
-      );
-
-      localStorage.removeItem(
-        "user_credentials"
-      );
-
-      return;
-    }
-
-
-    // -----------------------------------------------
-    // VALIDATE LOGIN CREDENTIALS
-    // -----------------------------------------------
-
-    const isEmailValid =
-      savedUser.email?.toLowerCase() ===
-      email.trim().toLowerCase();
-
-    const isPasswordValid =
-      savedUser.password === password;
-
-
-    if (
-      isEmailValid &&
-      isPasswordValid
-    ) {
-
-      setLoading(true);
-
-
-      // ---------------------------------------------
-      // USER DATA FOR AUTHENTICATION CONTEXT
-      // ---------------------------------------------
-
-      const userData = {
-        name: savedUser.name,
-        email: savedUser.email,
-        role: savedUser.role || "Employee",
-      };
-
-
-      // ---------------------------------------------
-      // SAVE USER IN AUTH CONTEXT
-      // ---------------------------------------------
-
-      login(userData);
-
-
-      // ---------------------------------------------
-      // SAVE ACTIVE USER
-      // ---------------------------------------------
-
-      localStorage.setItem(
-        "active_user",
-        JSON.stringify(userData)
-      );
-
-
-      // ---------------------------------------------
-      // REDIRECT TO DASHBOARD
-      // ---------------------------------------------
-
-      navigate(
-        "/dashboard",
-        {
-          replace: true,
-        }
-      );
-
-    } else {
-
-      setError(
-        "Invalid email or password. Please try again."
-      );
-
-    }
-  };
+  }
+};
 
 
   // =====================================================

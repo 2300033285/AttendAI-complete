@@ -4,11 +4,13 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+
 from app.schemas.employee import (
     EmployeeCreate,
     EmployeeUpdate,
     EmployeeResponse,
 )
+
 from app.services.employee_service import (
     create_employee_service,
     get_all_employees_service,
@@ -16,13 +18,19 @@ from app.services.employee_service import (
     update_employee_service,
     delete_employee_service,
 )
+
 from app.security import require_roles
+
 
 router = APIRouter(
     prefix="/employees",
     tags=["Employees"]
 )
 
+
+# ==========================================
+# CREATE EMPLOYEE
+# ==========================================
 
 @router.post(
     "/",
@@ -34,8 +42,15 @@ def create_employee(
     db: Session = Depends(get_db),
     current_user=Depends(require_roles(["Admin", "HR"])),
 ):
-    return create_employee_service(db, employee)
+    return create_employee_service(
+        db,
+        employee
+    )
 
+
+# ==========================================
+# GET ALL EMPLOYEES
+# ==========================================
 
 @router.get(
     "/",
@@ -43,10 +58,16 @@ def create_employee(
 )
 def get_all_employees(
     db: Session = Depends(get_db),
-    current_user=Depends(require_roles(["Admin", "HR", "Manager"])),
+    current_user=Depends(
+        require_roles(["Admin", "HR", "Manager"])
+    ),
 ):
     return get_all_employees_service(db)
 
+
+# ==========================================
+# GET EMPLOYEE BY ID
+# ==========================================
 
 @router.get(
     "/{employee_id}",
@@ -55,10 +76,19 @@ def get_all_employees(
 def get_employee(
     employee_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_roles(["Admin", "HR", "Manager"])),
+    current_user=Depends(
+        require_roles(["Admin", "HR", "Manager"])
+    ),
 ):
-    return get_employee_service(db, employee_id)
+    return get_employee_service(
+        db,
+        employee_id
+    )
 
+
+# ==========================================
+# UPDATE EMPLOYEE
+# ==========================================
 
 @router.put(
     "/{employee_id}",
@@ -68,10 +98,20 @@ def update_employee(
     employee_id: int,
     employee: EmployeeUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_roles(["Admin", "HR"])),
+    current_user=Depends(
+        require_roles(["Admin", "HR"])
+    ),
 ):
-    return update_employee_service(db, employee_id, employee)
+    return update_employee_service(
+        db,
+        employee_id,
+        employee
+    )
 
+
+# ==========================================
+# DELETE EMPLOYEE
+# ==========================================
 
 @router.delete(
     "/{employee_id}",
@@ -80,9 +120,14 @@ def update_employee(
 def delete_employee(
     employee_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_roles(["Admin"])),
+    current_user=Depends(
+        require_roles(["Admin"])
+    ),
 ):
-    delete_employee_service(db, employee_id)
+    delete_employee_service(
+        db,
+        employee_id
+    )
 
     return {
         "message": "Employee deleted successfully"
