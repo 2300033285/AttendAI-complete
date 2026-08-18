@@ -59,7 +59,7 @@ def create_employee(
 def get_all_employees(
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_roles(["Admin", "HR", "Manager"])
+        require_roles(["Admin", "HR", "Manager", "Employee"])
     ),
 ):
     return get_all_employees_service(db)
@@ -77,7 +77,7 @@ def get_employee(
     employee_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_roles(["Admin", "HR", "Manager"])
+        require_roles(["Admin", "HR", "Manager", "Employee"])
     ),
 ):
     return get_employee_service(

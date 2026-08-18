@@ -1,15 +1,23 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 
 
+# ==========================================
+# CREATE USER
+# ==========================================
+
 class UserCreate(BaseModel):
-    employee_id: str
     username: str
     email: EmailStr
     password: str
-    department: str
-    phone: str
     role: str = "Employee"
 
+    department: str = "General"
+    phone: str = "Not Provided"
+
+
+# ==========================================
+# UPDATE USER
+# ==========================================
 
 class UserUpdate(BaseModel):
     username: str
@@ -19,14 +27,21 @@ class UserUpdate(BaseModel):
     role: str
 
 
+# ==========================================
+# LOGIN USER
+# ==========================================
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
 
+# ==========================================
+# USER RESPONSE
+# ==========================================
+
 class UserResponse(BaseModel):
     id: int
-    employee_id: str
     username: str
     email: EmailStr
     department: str
@@ -34,8 +49,14 @@ class UserResponse(BaseModel):
     role: str
     is_active: bool
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
+
+# ==========================================
+# TOKEN RESPONSE
+# ==========================================
 
 class Token(BaseModel):
     access_token: str

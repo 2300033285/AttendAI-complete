@@ -140,9 +140,20 @@ def require_roles(allowed_roles: list):
 
         if user_role not in allowed_roles:
 
+            # Same message for VS Code terminal and API response
+            message = (
+                "Access denied. You do not have permission to "
+                "perform this action. Please contact your "
+                "administrator if you require access."
+            )
+
+            # Show in VS Code terminal
+            print(message)
+
+            # Show in Swagger / Frontend
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access Denied"
+                detail=message
             )
 
         return current_user

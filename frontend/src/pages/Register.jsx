@@ -12,12 +12,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import { useAuth } from "../context/AuthContext";
-
 export default function Register() {
   const navigate = useNavigate();
-
-  const { registerUser } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -50,7 +46,7 @@ export default function Register() {
   // HANDLE REGISTRATION
   // ============================================
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError("");
@@ -69,36 +65,65 @@ export default function Register() {
 
     setLoading(true);
 
-    // User data to save
-    const userData = {
-      name: formData.name.trim(),
-      email: formData.email.trim().toLowerCase(),
-      role: formData.role,
-      password: formData.password,
-    };
+    try {
+      console.log("Sending registration request...");
 
-    // Save user using AuthContext
-    registerUser(userData);
+      const response = await fetch(
+        "http://127.0.0.1:8000/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: formData.name.trim(),
+            email: formData.email.trim().toLowerCase(),
+            password: formData.password,
+            role: formData.role,
+          }),
+        }
+      );
 
-    // Redirect to login page
-    setTimeout(() => {
+      const data = await response.json();
+
+      console.log("Registration response:", data);
+
+      // Check backend response
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Failed to create account."
+        );
+      }
+
+      console.log("Account created successfully!");
+
+      // Redirect only after successful database registration
       navigate("/login", {
         replace: true,
         state: {
           registrationSuccess: true,
-          message: "Account created successfully! Please sign in.",
+          message:
+            "Account created successfully! Please sign in.",
         },
       });
-    }, 500);
+
+    } catch (err) {
+      console.error("Registration error:", err);
+
+      setError(
+        err.message ||
+        "Unable to create account. Please try again."
+      );
+
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <main className="auth-page">
 
-      {/* ============================================
-          LEFT BRAND PANEL
-      ============================================ */}
-
+      {/* LEFT BRAND PANEL */}
       <section className="auth-brand-panel">
 
         <Link to="/" className="auth-back-btn">
@@ -120,6 +145,7 @@ export default function Register() {
         </p>
 
         <div className="auth-highlight">
+
           <Sparkles size={20} />
 
           <div>
@@ -129,26 +155,21 @@ export default function Register() {
               Get your workspace configured in less than 2 minutes.
             </p>
           </div>
+
         </div>
 
       </section>
 
 
-      {/* ============================================
-          RIGHT FORM PANEL
-      ============================================ */}
-
+      {/* RIGHT FORM PANEL */}
       <section className="auth-form-panel">
 
         <div className="auth-form-container">
 
           {/* FORM HEADER */}
-
           <div className="auth-form-header">
 
-            <h2>
-              Create an Account
-            </h2>
+            <h2>Create an Account</h2>
 
             <p>
               Enter your details to register your workspace.
@@ -158,31 +179,24 @@ export default function Register() {
 
 
           {/* ERROR MESSAGE */}
-
           {error && (
-
             <div className="auth-error-message">
 
               <AlertCircle size={18} />
 
-              <span>
-                {error}
-              </span>
+              <span>{error}</span>
 
             </div>
-
           )}
 
 
           {/* REGISTRATION FORM */}
-
           <form
             className="auth-form"
             onSubmit={handleSubmit}
           >
 
             {/* FULL NAME */}
-
             <div className="form-group">
 
               <label htmlFor="name">
@@ -212,7 +226,6 @@ export default function Register() {
 
 
             {/* EMAIL */}
-
             <div className="form-group">
 
               <label htmlFor="email">
@@ -242,7 +255,6 @@ export default function Register() {
 
 
             {/* ROLE */}
-
             <div className="form-group">
 
               <label htmlFor="role">
@@ -250,7 +262,6 @@ export default function Register() {
               </label>
 
               <div className="input-wrapper role-wrapper">
-
 
                 <select
                   id="role"
@@ -280,7 +291,6 @@ export default function Register() {
 
 
             {/* PASSWORD */}
-
             <div className="form-group">
 
               <label htmlFor="password">
@@ -330,7 +340,6 @@ export default function Register() {
 
 
             {/* CONFIRM PASSWORD */}
-
             <div className="form-group">
 
               <label htmlFor="confirmPassword">
@@ -364,7 +373,6 @@ export default function Register() {
 
 
             {/* SUBMIT BUTTON */}
-
             <button
               type="submit"
               className="auth-submit-btn"
@@ -386,7 +394,6 @@ export default function Register() {
 
 
           {/* LOGIN LINK */}
-
           <p className="auth-switch-link">
 
             Already have an account?{" "}
