@@ -18,11 +18,7 @@ class Employee(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    employee_id = Column(
-        String(20),
-        unique=True,
-        nullable=False
-    )
+
 
     first_name = Column(
         String(50),

@@ -65,7 +65,6 @@ def login_service(
     print("USER FOUND!")
     print("USER ID:", db_user.id)
     print("STORED EMAIL:", db_user.email)
-    print("STORED PASSWORD HASH:", db_user.password)
 
     # Verify password
     password_valid = verify_password(
@@ -89,6 +88,7 @@ def login_service(
     # Create JWT token
     access_token = create_access_token(
         data={
+            "id": db_user.id,
             "sub": db_user.email,
             "role": db_user.role
         }

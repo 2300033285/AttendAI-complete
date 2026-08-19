@@ -18,6 +18,7 @@ from app.models.user import User
 from app.models.employee import Employee
 from app.models.attendance import Attendance
 from app.models.shift import Shift
+from app.models.qr_attendance import QRAttendance
 
 # =====================================================
 # IMPORT CONTROLLERS
@@ -34,6 +35,7 @@ from app.controllers import shift
 from app.controllers import auth
 from app.controllers import employee
 from app.controllers import attendance
+from app.controllers import qr_attendance
 
 # =====================================================
 # USER CRUD
@@ -115,7 +117,7 @@ app.include_router(employee_analytics.router)
 app.include_router(ai_prediction.router)
 app.include_router(insights.router)
 app.include_router(anomaly.router)
-
+app.include_router(qr_attendance.router)
 
 # =====================================================
 # HOME
