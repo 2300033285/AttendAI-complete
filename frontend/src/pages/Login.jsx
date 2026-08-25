@@ -73,8 +73,6 @@ export default function Login() {
     if (message) {
       setSuccessMessage(message);
 
-      // Clear the message from browser history
-      // while keeping the current page
       window.history.replaceState(
         {},
         document.title,
@@ -82,6 +80,129 @@ export default function Login() {
       );
     }
   }, [location]);
+
+
+  // =====================================================
+  // GENERATE ATTENDANCE TOKEN
+  // =====================================================
+
+  const generateAttendanceToken = (
+    userData
+  ) => {
+    const randomCode =
+      Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase();
+
+    const timestamp =
+      Date.now();
+
+    const employeeEmail =
+      userData.email
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .substring(0, 10);
+
+    return `ATTENDAI-${employeeEmail}-${timestamp}-${randomCode}`;
+  };
+
+
+  // =====================================================
+  // CREATE AUTOMATIC ATTENDANCE SESSION
+  // =====================================================
+
+  const createAttendanceSession = (
+    userData
+  ) => {
+    // Only employees need an automatic
+    // attendance QR/session.
+
+    const normalizedRole =
+      userData.role
+        ?.toLowerCase();
+
+    const isEmployee =
+      normalizedRole !== "admin" &&
+      normalizedRole !== "hr";
+
+    if (!isEmployee) {
+      return;
+    }
+
+
+    // Generate unique attendance token
+
+    const attendanceToken =
+      generateAttendanceToken(
+        userData
+      );
+
+
+    // Get current date/time
+
+    const now =
+      new Date();
+
+
+    const attendanceSession = {
+      token: attendanceToken,
+
+      employeeName:
+        userData.name,
+
+      employeeEmail:
+        userData.email,
+
+      role:
+        userData.role,
+
+      date:
+        now.toISOString()
+          .split("T")[0],
+
+      checkIn:
+        now.toLocaleTimeString(
+          [],
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+          }
+        ),
+
+      checkOut: null,
+
+      totalHours: null,
+
+      status: "Present",
+
+      verified: true,
+
+      createdAt:
+        now.toISOString(),
+    };
+
+
+    // Save automatic attendance
+    // session for the logged-in employee
+
+    localStorage.setItem(
+      "attendance_session",
+      JSON.stringify(
+        attendanceSession
+      )
+    );
+
+
+    // Save a separate flag so the
+    // Attendance page knows that the
+    // employee has already been verified.
+
+    localStorage.setItem(
+      "attendance_verified",
+      "true"
+    );
+  };
 
 
   // =====================================================
@@ -126,7 +247,9 @@ export default function Login() {
 
     try {
       savedUser =
-        JSON.parse(savedUserData);
+        JSON.parse(
+          savedUserData
+        );
     } catch (error) {
       setError(
         "Something went wrong. Please register again."
@@ -145,12 +268,20 @@ export default function Login() {
     // -----------------------------------------------
 
     const isEmailValid =
-      savedUser.email?.toLowerCase() ===
-      email.trim().toLowerCase();
+      savedUser.email
+        ?.toLowerCase() ===
+      email
+        .trim()
+        .toLowerCase();
 
     const isPasswordValid =
-      savedUser.password === password;
+      savedUser.password ===
+      password;
 
+
+    // =================================================
+    // SUCCESSFUL LOGIN
+    // =================================================
 
     if (
       isEmailValid &&
@@ -165,9 +296,15 @@ export default function Login() {
       // ---------------------------------------------
 
       const userData = {
-        name: savedUser.name,
-        email: savedUser.email,
-        role: savedUser.role || "Employee",
+        name:
+          savedUser.name,
+
+        email:
+          savedUser.email,
+
+        role:
+          savedUser.role ||
+          "Employee",
       };
 
 
@@ -184,7 +321,31 @@ export default function Login() {
 
       localStorage.setItem(
         "active_user",
-        JSON.stringify(userData)
+        JSON.stringify(
+          userData
+        )
+      );
+
+
+      // ---------------------------------------------
+      // AUTOMATIC ATTENDANCE
+      // ---------------------------------------------
+
+      /*
+        Employee login now automatically creates
+        an attendance session.
+
+        No HR/Admin QR generation is required.
+
+        No camera scanner is required.
+
+        The Attendance page will use this session
+        to display the employee's QR and attendance
+        status.
+      */
+
+      createAttendanceSession(
+        userData
       );
 
 
@@ -372,7 +533,6 @@ export default function Login() {
             onSubmit={handleSubmit}
             className="auth-form"
           >
-
 
             {/* EMAIL */}
 
