@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   FiSearch,
   FiDownload,
@@ -19,71 +19,63 @@ import {
 import { useAuth } from "../context/AuthContext";
 
 // =====================================================
+// MOCK EMPLOYEE DATA
+// =====================================================
+
+const INITIAL_EMPLOYEES = [
+  {
+    id: "EMP-001",
+    name: "Sarah Jenkins",
+    role: "Product Designer",
+    dept: "Design",
+    email: "sarah.j@attendai.com",
+    status: "Active",
+    joinDate: "Jan 15, 2023",
+  },
+  {
+    id: "EMP-002",
+    name: "Alex Rivera",
+    role: "Frontend Developer",
+    dept: "Engineering",
+    email: "alex.r@attendai.com",
+    status: "Active",
+    joinDate: "Mar 01, 2023",
+  },
+  {
+    id: "EMP-003",
+    name: "Michael Chen",
+    role: "Backend Engineer",
+    dept: "Engineering",
+    email: "m.chen@attendai.com",
+    status: "On Leave",
+    joinDate: "Nov 10, 2022",
+  },
+  {
+    id: "EMP-004",
+    name: "Emily Watson",
+    role: "HR Specialist",
+    dept: "Human Resources",
+    email: "emily.w@attendai.com",
+    status: "Active",
+    joinDate: "Feb 20, 2024",
+  },
+  {
+    id: "EMP-005",
+    name: "David Kim",
+    role: "Marketing Lead",
+    dept: "Marketing",
+    email: "david.k@attendai.com",
+    status: "Inactive",
+    joinDate: "Aug 05, 2021",
+  },
+];
+
+// =====================================================
 // EMPLOYEES COMPONENT
 // =====================================================
 
 export default function Employees() {
   const { user } = useAuth();
-
-  const [employees, setEmployees] = useState([]);
-  const [employeesLoading, setEmployeesLoading] = useState(true);
-  const [employeesError, setEmployeesError] = useState("");
-
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        
-        const token = localStorage.getItem("access_token");
-
-        const response = await fetch(
-          "http://127.0.0.1:8000/employees/",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to load employees");
-        }
-
-        const data = await response.json();
-
-        console.log("Employees:", data);
-
-        const normalizedEmployees = data.map((employee) => ({
-          id: employee.employee_id ?? String(employee.id),
-          name: `${employee.first_name ?? ""} ${employee.last_name ?? ""}`.trim(),
-          role: employee.designation ?? "Not assigned",
-          dept: employee.department ?? "Not assigned",
-          email: employee.email ?? "",
-          status: employee.status ? "Active" : "Inactive",
-          joinDate: employee.joining_date
-            ? new Date(`${employee.joining_date}T00:00:00`).toLocaleDateString(
-                "en-US",
-                {
-                  month: "short",
-                  day: "2-digit",
-                  year: "numeric",
-                }
-              )
-            : "—",
-        }));
-
-        setEmployees(normalizedEmployees);
-
-      } catch (error) {
-        console.error("Employee API Error:", error);
-        setEmployeesError("Failed to load employees");
-
-      } finally {
-        setEmployeesLoading(false);
-      }
-    };
-
-    fetchEmployees();
-  }, []);
 
   // =====================================================
   // USER PROFILE DATA
@@ -112,6 +104,9 @@ export default function Employees() {
   // =====================================================
   // STATES
   // =====================================================
+
+  const [employees] =
+    useState(INITIAL_EMPLOYEES);
 
   const [search, setSearch] =
     useState("");
@@ -307,22 +302,6 @@ export default function Employees() {
   // =====================================================
   // UI
   // =====================================================
-
-  if (employeesLoading) {
-    return (
-      <div className="employees-container">
-        <p>Loading employees...</p>
-      </div>
-    );
-  }
-
-  if (employeesError) {
-    return (
-      <div className="employees-container">
-        <p>{employeesError}</p>
-      </div>
-    );
-  }
 
   return (
     <div className="employees-container">

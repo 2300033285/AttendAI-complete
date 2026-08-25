@@ -1,4 +1,3 @@
-import { API_BASE_URL } from "../api/api";
 import React, { useEffect, useState } from "react";
 import {
   Link,
@@ -74,8 +73,6 @@ export default function Login() {
     if (message) {
       setSuccessMessage(message);
 
-      // Clear the message from browser history
-      // while keeping the current page
       window.history.replaceState(
         {},
         document.title,
@@ -86,86 +83,291 @@ export default function Login() {
 
 
   // =====================================================
-  // HANDLE LOGIN
+  // GENERATE ATTENDANCE TOKEN
   // =====================================================
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const generateAttendanceToken = (
+    userData
+  ) => {
+    const randomCode =
+      Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase();
 
-  setError("");
-  setLoading(true);
+    const timestamp =
+      Date.now();
 
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/login`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          username: email.trim().split("@")[0],
-          email: email.trim(),
-          password: password,
-        }),
-      }
-    );
+    const employeeEmail =
+      userData.email
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .substring(0, 10);
 
-    const data = await response.json();
+    return `ATTENDAI-${employeeEmail}-${timestamp}-${randomCode}`;
+  };
 
-    if (!response.ok) {
-      setError(
-        data.detail || "Invalid email or password."
-      );
+
+  // =====================================================
+  // CREATE AUTOMATIC ATTENDANCE SESSION
+  // =====================================================
+
+  const createAttendanceSession = (
+    userData
+  ) => {
+    // Only employees need an automatic
+    // attendance QR/session.
+
+    const normalizedRole =
+      userData.role
+        ?.toLowerCase();
+
+    const isEmployee =
+      normalizedRole !== "admin" &&
+      normalizedRole !== "hr";
+
+    if (!isEmployee) {
       return;
     }
 
-    const tokenPayload = JSON.parse(
-      atob(
-        data.access_token
-          .split(".")[1]
-          .replace(/-/g, "+")
-          .replace(/_/g, "/")
+
+    // Generate unique attendance token
+
+    const attendanceToken =
+      generateAttendanceToken(
+        userData
+      );
+
+
+    // Get current date/time
+
+    const now =
+      new Date();
+
+
+    const attendanceSession = {
+      token: attendanceToken,
+
+      employeeName:
+        userData.name,
+
+      employeeEmail:
+        userData.email,
+
+      role:
+        userData.role,
+
+      date:
+        now.toISOString()
+          .split("T")[0],
+
+      checkIn:
+        now.toLocaleTimeString(
+          [],
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+          }
+        ),
+
+      checkOut: null,
+
+      totalHours: null,
+
+      status: "Present",
+
+      verified: true,
+
+      createdAt:
+        now.toISOString(),
+    };
+
+
+    // Save automatic attendance
+    // session for the logged-in employee
+
+    localStorage.setItem(
+      "attendance_session",
+      JSON.stringify(
+        attendanceSession
       )
     );
 
-    const userData = {
-      name:
-        tokenPayload.sub?.split("@")[0] ||
-        email.split("@")[0],
 
-      email:
-        tokenPayload.sub ||
-        email.trim(),
-
-      role:
-        tokenPayload.role ||
-        "Employee",
-    };
-
-    login(userData, data.access_token);
+    // Save a separate flag so the
+    // Attendance page knows that the
+    // employee has already been verified.
 
     localStorage.setItem(
-      "active_user",
-      JSON.stringify(userData)
+      "attendance_verified",
+      "true"
     );
+  };
 
-    navigate("/dashboard", {
-      replace: true,
-    });
 
-  } catch (error) {
-    console.error("Login error:", error);
+  // =====================================================
+  // HANDLE LOGIN
+  // =====================================================
 
-    setError(
-      "Unable to connect to the backend."
-    );
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-  } finally {
+    setError("");
     setLoading(false);
-  }
-};
+
+
+    // -----------------------------------------------
+    // GET REGISTERED USER
+    // -----------------------------------------------
+
+    const savedUserData =
+      localStorage.getItem(
+        "user_credentials"
+      );
+
+
+    // -----------------------------------------------
+    // CHECK WHETHER USER EXISTS
+    // -----------------------------------------------
+
+    if (!savedUserData) {
+      setError(
+        "No account found. Please create an account first."
+      );
+
+      return;
+    }
+
+
+    // -----------------------------------------------
+    // SAFELY READ USER DATA
+    // -----------------------------------------------
+
+    let savedUser;
+
+    try {
+      savedUser =
+        JSON.parse(
+          savedUserData
+        );
+    } catch (error) {
+      setError(
+        "Something went wrong. Please register again."
+      );
+
+      localStorage.removeItem(
+        "user_credentials"
+      );
+
+      return;
+    }
+
+
+    // -----------------------------------------------
+    // VALIDATE LOGIN CREDENTIALS
+    // -----------------------------------------------
+
+    const isEmailValid =
+      savedUser.email
+        ?.toLowerCase() ===
+      email
+        .trim()
+        .toLowerCase();
+
+    const isPasswordValid =
+      savedUser.password ===
+      password;
+
+
+    // =================================================
+    // SUCCESSFUL LOGIN
+    // =================================================
+
+    if (
+      isEmailValid &&
+      isPasswordValid
+    ) {
+
+      setLoading(true);
+
+
+      // ---------------------------------------------
+      // USER DATA FOR AUTHENTICATION CONTEXT
+      // ---------------------------------------------
+
+      const userData = {
+        name:
+          savedUser.name,
+
+        email:
+          savedUser.email,
+
+        role:
+          savedUser.role ||
+          "Employee",
+      };
+
+
+      // ---------------------------------------------
+      // SAVE USER IN AUTH CONTEXT
+      // ---------------------------------------------
+
+      login(userData);
+
+
+      // ---------------------------------------------
+      // SAVE ACTIVE USER
+      // ---------------------------------------------
+
+      localStorage.setItem(
+        "active_user",
+        JSON.stringify(
+          userData
+        )
+      );
+
+
+      // ---------------------------------------------
+      // AUTOMATIC ATTENDANCE
+      // ---------------------------------------------
+
+      /*
+        Employee login now automatically creates
+        an attendance session.
+
+        No HR/Admin QR generation is required.
+
+        No camera scanner is required.
+
+        The Attendance page will use this session
+        to display the employee's QR and attendance
+        status.
+      */
+
+      createAttendanceSession(
+        userData
+      );
+
+
+      // ---------------------------------------------
+      // REDIRECT TO DASHBOARD
+      // ---------------------------------------------
+
+      navigate(
+        "/dashboard",
+        {
+          replace: true,
+        }
+      );
+
+    } else {
+
+      setError(
+        "Invalid email or password. Please try again."
+      );
+
+    }
+  };
 
 
   // =====================================================
@@ -331,7 +533,6 @@ const handleSubmit = async (e) => {
             onSubmit={handleSubmit}
             className="auth-form"
           >
-
 
             {/* EMAIL */}
 

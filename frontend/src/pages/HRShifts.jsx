@@ -1,218 +1,65 @@
-import React, {
-  useEffect,
-  useState,
-} from "react";
-
+import React from "react";
 import {
   Clock3,
+  User,
   BriefcaseBusiness,
   CheckCircle2,
-  RefreshCw,
 } from "lucide-react";
 
-import {
-  API_BASE_URL,
-} from "../api/api";
-
 export default function HRShifts() {
-
-  // =====================================================
-  // STATE
-  // =====================================================
-
-  const [shifts, setShifts] = useState([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  // =====================================================
-  // FETCH SHIFTS
-  // =====================================================
-
-  const fetchShifts = async () => {
-
-    try {
-
-      setLoading(true);
-
-      setError("");
-
-      const token =
-        localStorage.getItem(
-          "access_token"
-        );
-
-      const response =
-        await fetch(
-          `${API_BASE_URL}/shifts/`,
-          {
-            method: "GET",
-
-            headers: {
-
-              Accept:
-                "application/json",
-
-              ...(token
-                ? {
-                    Authorization:
-                      `Bearer ${token}`,
-                  }
-                : {}),
-            },
-          }
-        );
-
-      if (!response.ok) {
-
-        const errorData =
-          await response
-            .json()
-            .catch(() => ({}));
-
-        throw new Error(
-          errorData.detail ||
-          "Failed to fetch shifts."
-        );
-      }
-
-      const data =
-        await response.json();
-
-      setShifts(data);
-
-    } catch (error) {
-
-      console.error(
-        "Shift fetch error:",
-        error
-      );
-
-      setError(
-        error.message ||
-        "Unable to load shifts from the backend."
-      );
-
-    } finally {
-
-      setLoading(false);
-
-    }
-
-  };
-
-  // =====================================================
-  // LOAD DATA
-  // =====================================================
-
-  useEffect(() => {
-
-    fetchShifts();
-
-  }, []);
-
-  // =====================================================
-  // FORMAT TIME
-  // =====================================================
-
-  const formatTime = (time) => {
-
-    if (!time) {
-      return "Not available";
-    }
-
-    try {
-
-      const parts =
-        time.split(":");
-
-      let hours =
-        parseInt(parts[0]);
-
-      const minutes =
-        parts[1];
-
-      const ampm =
-        hours >= 12
-          ? "PM"
-          : "AM";
-
-      hours =
-        hours % 12 || 12;
-
-      return `${hours}:${minutes} ${ampm}`;
-
-    } catch {
-
-      return time;
-
-    }
-
-  };
-
-  // =====================================================
-  // STATUS STYLE
-  // =====================================================
+  const employees = [
+    {
+      id: 1,
+      name: "Neeharika",
+      designation: "Frontend Developer",
+      shift: "9:00 AM - 6:00 PM",
+      status: "Active",
+    },
+    {
+      id: 2,
+      name: "Nikhil",
+      designation: "Backend Developer",
+      shift: "10:00 AM - 7:00 PM",
+      status: "Active",
+    },
+    {
+      id: 3,
+      name: "Jyonith",
+      designation: "Backend Developer",
+      shift: "9:00 AM - 6:00 PM",
+      status: "Upcoming",
+    },
+  ];
 
   const getStatusStyle = (status) => {
-
-    if (status === true) {
-
+    if (status === "Active") {
       return {
-        background:
-          "#dcfce7",
-
-        color:
-          "#166534",
-
-        label:
-          "Active",
+        background: "#dcfce7",
+        color: "#166534",
       };
+    }
 
+    if (status === "Upcoming") {
+      return {
+        background: "#dbeafe",
+        color: "#1d4ed8",
+      };
+    }
+
+    if (status === "Completed") {
+      return {
+        background: "#f1f5f9",
+        color: "#475569",
+      };
     }
 
     return {
-
-      background:
-        "#fee2e2",
-
-      color:
-        "#b91c1c",
-
-      label:
-        "Inactive",
-
+      background: "#fef3c7",
+      color: "#92400e",
     };
-
   };
 
-  // =====================================================
-  // HANDLE CHANGE BUTTON
-  // =====================================================
-
-  const handleChangeShift =
-    (shift) => {
-
-      alert(
-        `Shift: ${shift.shift_name}\n` +
-        `Time: ${formatTime(
-          shift.start_time
-        )} - ${formatTime(
-          shift.end_time
-        )}`
-      );
-
-    };
-
-  // =====================================================
-  // UI
-  // =====================================================
-
   return (
-
     <div
       style={{
         padding: "24px",
@@ -220,771 +67,333 @@ export default function HRShifts() {
         background: "#f8fafc",
       }}
     >
-
-      {/* ================================================ */}
       {/* PAGE HEADER */}
-      {/* ================================================ */}
-
-      <div
-        style={{
-          marginBottom: "24px",
-          display: "flex",
-          justifyContent:
-            "space-between",
-          alignItems:
-            "center",
-        }}
-      >
-
-        <div>
-
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "26px",
-              fontWeight: "700",
-              color: "#0f172a",
-            }}
-          >
-            Shift Management
-          </h1>
-
-          <p
-            style={{
-              margin: "6px 0 0",
-              fontSize: "14px",
-              color: "#64748b",
-            }}
-          >
-            View and manage shifts.
-          </p>
-
-        </div>
-
-
-        {/* REFRESH BUTTON */}
-
-        <button
-          type="button"
-          onClick={fetchShifts}
-          disabled={loading}
-
+      <div style={{ marginBottom: "24px" }}>
+        <h1
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-
-            padding:
-              "10px 16px",
-
-            border:
-              "1px solid #dbe2ea",
-
-            borderRadius:
-              "8px",
-
-            background:
-              "#ffffff",
-
-            color:
-              "#334155",
-
-            fontSize:
-              "13px",
-
-            fontWeight:
-              "600",
-
-            cursor:
-              loading
-                ? "not-allowed"
-                : "pointer",
-
-            opacity:
-              loading
-                ? 0.7
-                : 1,
+            margin: 0,
+            fontSize: "26px",
+            fontWeight: "700",
+            color: "#0f172a",
           }}
         >
+          Shift Management
+        </h1>
 
-          <RefreshCw
-            size={16}
-          />
-
-          Refresh
-
-        </button>
-
+        <p
+          style={{
+            margin: "6px 0 0",
+            fontSize: "14px",
+            color: "#64748b",
+          }}
+        >
+          View and manage employee shifts.
+        </p>
       </div>
 
-
-      {/* ================================================ */}
-      {/* ERROR MESSAGE */}
-      {/* ================================================ */}
-
-      {error && (
-
-        <div
-          style={{
-            marginBottom:
-              "20px",
-
-            padding:
-              "14px 18px",
-
-            borderRadius:
-              "10px",
-
-            background:
-              "#fee2e2",
-
-            border:
-              "1px solid #fecaca",
-
-            color:
-              "#b91c1c",
-
-            fontSize:
-              "14px",
-          }}
-        >
-
-          {error}
-
-        </div>
-
-      )}
-
-
-      {/* ================================================ */}
       {/* SHIFT TABLE CARD */}
-      {/* ================================================ */}
-
       <div
         style={{
-          background:
-            "#ffffff",
-
-          border:
-            "1px solid #e2e8f0",
-
-          borderRadius:
-            "16px",
-
-          overflow:
-            "hidden",
-
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "16px",
+          overflow: "hidden",
           boxShadow:
             "0 4px 16px rgba(15, 23, 42, 0.06)",
         }}
       >
-
-
         {/* TABLE HEADER */}
-
         <div
           style={{
-            padding:
-              "20px 24px",
-
-            borderBottom:
-              "1px solid #e2e8f0",
+            padding: "20px 24px",
+            borderBottom: "1px solid #e2e8f0",
           }}
         >
-
           <h2
             style={{
               margin: 0,
-
-              fontSize:
-                "18px",
-
-              fontWeight:
-                "700",
-
-              color:
-                "#0f172a",
+              fontSize: "18px",
+              fontWeight: "700",
+              color: "#0f172a",
             }}
           >
-            Available Shifts
+            Employee Shifts
           </h2>
 
           <p
             style={{
-              margin:
-                "5px 0 0",
-
-              fontSize:
-                "13px",
-
-              color:
-                "#64748b",
+              margin: "5px 0 0",
+              fontSize: "13px",
+              color: "#64748b",
             }}
           >
-            Shifts loaded from the AttendAI backend.
+            Manage the assigned shifts of employees.
           </p>
-
         </div>
 
-
-        {/* ================================================ */}
-        {/* LOADING */}
-        {/* ================================================ */}
-
-        {loading && (
-
-          <div
+        {/* RESPONSIVE TABLE */}
+        <div
+          style={{
+            width: "100%",
+            overflowX: "auto",
+          }}
+        >
+          <table
             style={{
-              padding:
-                "50px",
-
-              textAlign:
-                "center",
-
-              color:
-                "#64748b",
-
-              fontSize:
-                "14px",
+              width: "100%",
+              borderCollapse: "collapse",
+              minWidth: "750px",
             }}
           >
-
-            Loading shifts...
-
-          </div>
-
-        )}
-
-
-        {/* ================================================ */}
-        {/* EMPTY STATE */}
-        {/* ================================================ */}
-
-        {!loading &&
-          !error &&
-          shifts.length === 0 && (
-
-          <div
-            style={{
-              padding:
-                "50px",
-
-              textAlign:
-                "center",
-
-              color:
-                "#64748b",
-
-              fontSize:
-                "14px",
-            }}
-          >
-
-            No shifts found.
-
-            <br />
-
-            Create a shift from your backend API.
-
-          </div>
-
-        )}
-
-
-        {/* ================================================ */}
-        {/* TABLE */}
-        {/* ================================================ */}
-
-        {!loading &&
-          shifts.length > 0 && (
-
-          <div
-            style={{
-              width:
-                "100%",
-
-              overflowX:
-                "auto",
-            }}
-          >
-
-            <table
-              style={{
-                width:
-                  "100%",
-
-                borderCollapse:
-                  "collapse",
-
-                minWidth:
-                  "750px",
-              }}
-            >
-
-              {/* TABLE HEAD */}
-
-              <thead>
-
-                <tr
+            <thead>
+              <tr
+                style={{
+                  background: "#f8fafc",
+                }}
+              >
+                <th
                   style={{
-                    background:
-                      "#f8fafc",
+                    padding: "14px 20px",
+                    textAlign: "left",
+                    fontSize: "12px",
+                    color: "#64748b",
+                    fontWeight: "700",
                   }}
                 >
+                  EMPLOYEE
+                </th>
 
-                  <th
+                <th
+                  style={{
+                    padding: "14px 20px",
+                    textAlign: "left",
+                    fontSize: "12px",
+                    color: "#64748b",
+                    fontWeight: "700",
+                  }}
+                >
+                  DESIGNATION
+                </th>
+
+                <th
+                  style={{
+                    padding: "14px 20px",
+                    textAlign: "left",
+                    fontSize: "12px",
+                    color: "#64748b",
+                    fontWeight: "700",
+                  }}
+                >
+                  SHIFT TIME
+                </th>
+
+                <th
+                  style={{
+                    padding: "14px 20px",
+                    textAlign: "left",
+                    fontSize: "12px",
+                    color: "#64748b",
+                    fontWeight: "700",
+                  }}
+                >
+                  STATUS
+                </th>
+
+                <th
+                  style={{
+                    padding: "14px 20px",
+                    textAlign: "left",
+                    fontSize: "12px",
+                    color: "#64748b",
+                    fontWeight: "700",
+                  }}
+                >
+                  ACTION
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {employees.map((employee) => {
+                const statusStyle = getStatusStyle(
+                  employee.status
+                );
+
+                return (
+                  <tr
+                    key={employee.id}
                     style={{
-                      padding:
-                        "14px 20px",
-
-                      textAlign:
-                        "left",
-
-                      fontSize:
-                        "12px",
-
-                      color:
-                        "#64748b",
-
-                      fontWeight:
-                        "700",
+                      borderTop:
+                        "1px solid #e2e8f0",
                     }}
                   >
-                    SHIFT
-                  </th>
-
-
-                  <th
-                    style={{
-                      padding:
-                        "14px 20px",
-
-                      textAlign:
-                        "left",
-
-                      fontSize:
-                        "12px",
-
-                      color:
-                        "#64748b",
-
-                      fontWeight:
-                        "700",
-                    }}
-                  >
-                    START TIME
-                  </th>
-
-
-                  <th
-                    style={{
-                      padding:
-                        "14px 20px",
-
-                      textAlign:
-                        "left",
-
-                      fontSize:
-                        "12px",
-
-                      color:
-                        "#64748b",
-
-                      fontWeight:
-                        "700",
-                    }}
-                  >
-                    END TIME
-                  </th>
-
-
-                  <th
-                    style={{
-                      padding:
-                        "14px 20px",
-
-                      textAlign:
-                        "left",
-
-                      fontSize:
-                        "12px",
-
-                      color:
-                        "#64748b",
-
-                      fontWeight:
-                        "700",
-                    }}
-                  >
-                    STATUS
-                  </th>
-
-
-                  <th
-                    style={{
-                      padding:
-                        "14px 20px",
-
-                      textAlign:
-                        "left",
-
-                      fontSize:
-                        "12px",
-
-                      color:
-                        "#64748b",
-
-                      fontWeight:
-                        "700",
-                    }}
-                  >
-                    ACTION
-                  </th>
-
-                </tr>
-
-              </thead>
-
-
-              {/* TABLE BODY */}
-
-              <tbody>
-
-                {shifts.map(
-                  (shift) => {
-
-                    const statusStyle =
-                      getStatusStyle(
-                        shift.status
-                      );
-
-                    return (
-
-                      <tr
-                        key={shift.id}
-
+                    {/* EMPLOYEE */}
+                    <td
+                      style={{
+                        padding: "18px 20px",
+                      }}
+                    >
+                      <div
                         style={{
-                          borderTop:
-                            "1px solid #e2e8f0",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
                         }}
                       >
-
-
-                        {/* SHIFT NAME */}
-
-                        <td
+                        <div
                           style={{
-                            padding:
-                              "18px 20px",
+                            width: "38px",
+                            height: "38px",
+                            borderRadius: "50%",
+                            background:
+                              "var(--primary)",
+                            color: "#ffffff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: "700",
                           }}
                         >
+                          {employee.name
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
 
-                          <div
+                        <div>
+                          <p
                             style={{
-                              display:
-                                "flex",
-
-                              alignItems:
-                                "center",
-
-                              gap:
-                                "12px",
+                              margin: 0,
+                              fontSize: "14px",
+                              fontWeight: "600",
+                              color: "#1e293b",
                             }}
                           >
+                            {employee.name}
+                          </p>
 
-                            <div
-                              style={{
-                                width:
-                                  "38px",
-
-                                height:
-                                  "38px",
-
-                                borderRadius:
-                                  "50%",
-
-                                background:
-                                  "var(--primary)",
-
-                                color:
-                                  "#ffffff",
-
-                                display:
-                                  "flex",
-
-                                alignItems:
-                                  "center",
-
-                                justifyContent:
-                                  "center",
-
-                                fontWeight:
-                                  "700",
-                              }}
-                            >
-
-                              {shift.shift_name
-                                ?.charAt(0)
-                                .toUpperCase() ||
-                                "S"}
-
-                            </div>
-
-
-                            <div>
-
-                              <p
-                                style={{
-                                  margin:
-                                    0,
-
-                                  fontSize:
-                                    "14px",
-
-                                  fontWeight:
-                                    "600",
-
-                                  color:
-                                    "#1e293b",
-                                }}
-                              >
-
-                                {shift.shift_name}
-
-                              </p>
-
-
-                              <p
-                                style={{
-                                  margin:
-                                    "3px 0 0",
-
-                                  fontSize:
-                                    "11px",
-
-                                  color:
-                                    "#94a3b8",
-                                }}
-                              >
-
-                                Shift ID:
-                                {" "}
-                                {shift.id}
-
-                              </p>
-
-                            </div>
-
-                          </div>
-
-                        </td>
-
-
-                        {/* START TIME */}
-
-                        <td
-                          style={{
-                            padding:
-                              "18px 20px",
-
-                            fontSize:
-                              "14px",
-
-                            color:
-                              "#334155",
-                          }}
-                        >
-
-                          <div
+                          <p
                             style={{
-                              display:
-                                "flex",
-
-                              alignItems:
-                                "center",
-
-                              gap:
-                                "8px",
+                              margin: "3px 0 0",
+                              fontSize: "11px",
+                              color: "#94a3b8",
                             }}
                           >
+                            Employee
+                          </p>
+                        </div>
+                      </div>
+                    </td>
 
-                            <Clock3
-                              size={16}
-                              color="#ea580c"
-                            />
+                    {/* DESIGNATION */}
+                    <td
+                      style={{
+                        padding: "18px 20px",
+                        fontSize: "14px",
+                        color: "#334155",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <BriefcaseBusiness
+                          size={16}
+                          color="#64748b"
+                        />
 
-                            {formatTime(
-                              shift.start_time
-                            )}
+                        {employee.designation}
+                      </div>
+                    </td>
 
-                          </div>
+                    {/* SHIFT */}
+                    <td
+                      style={{
+                        padding: "18px 20px",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: "#334155",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <Clock3
+                          size={16}
+                          color="#ea580c"
+                        />
 
-                        </td>
+                        {employee.shift}
+                      </div>
+                    </td>
 
+                    {/* STATUS */}
+                    <td
+                      style={{
+                        padding: "18px 20px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "7px 12px",
+                          borderRadius: "999px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          background:
+                            statusStyle.background,
+                          color:
+                            statusStyle.color,
+                        }}
+                      >
+                        <CheckCircle2 size={14} />
 
-                        {/* END TIME */}
+                        {employee.status}
+                      </span>
+                    </td>
 
-                        <td
-                          style={{
-                            padding:
-                              "18px 20px",
-
-                            fontSize:
-                              "14px",
-
-                            color:
-                              "#334155",
-                          }}
-                        >
-
-                          <div
-                            style={{
-                              display:
-                                "flex",
-
-                              alignItems:
-                                "center",
-
-                              gap:
-                                "8px",
-                            }}
-                          >
-
-                            <Clock3
-                              size={16}
-                              color="#ea580c"
-                            />
-
-                            {formatTime(
-                              shift.end_time
-                            )}
-
-                          </div>
-
-                        </td>
-
-
-                        {/* STATUS */}
-
-                        <td
-                          style={{
-                            padding:
-                              "18px 20px",
-                          }}
-                        >
-
-                          <span
-                            style={{
-                              display:
-                                "inline-flex",
-
-                              alignItems:
-                                "center",
-
-                              gap:
-                                "6px",
-
-                              padding:
-                                "7px 12px",
-
-                              borderRadius:
-                                "999px",
-
-                              fontSize:
-                                "12px",
-
-                              fontWeight:
-                                "600",
-
-                              background:
-                                statusStyle.background,
-
-                              color:
-                                statusStyle.color,
-                            }}
-                          >
-
-                            <CheckCircle2
-                              size={14}
-                            />
-
-                            {statusStyle.label}
-
-                          </span>
-
-                        </td>
-
-
-                        {/* ACTION */}
-
-                        <td
-                          style={{
-                            padding:
-                              "18px 20px",
-                          }}
-                        >
-
-                          <button
-                            type="button"
-
-                            onClick={() =>
-                              handleChangeShift(
-                                shift
-                              )
-                            }
-
-                            style={{
-                              padding:
-                                "8px 13px",
-
-                              border:
-                                "1px solid #dbe2ea",
-
-                              borderRadius:
-                                "8px",
-
-                              background:
-                                "#ffffff",
-
-                              color:
-                                "#334155",
-
-                              fontSize:
-                                "12px",
-
-                              fontWeight:
-                                "600",
-
-                              cursor:
-                                "pointer",
-                            }}
-                          >
-
-                            View Shift
-
-                          </button>
-
-                        </td>
-
-                      </tr>
-
-                    );
-
-                  }
-                )}
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        )}
-
+                    {/* ACTION */}
+                    <td
+                      style={{
+                        padding: "18px 20px",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          alert(
+                            `Assign/change shift for ${employee.name}`
+                          )
+                        }
+                        style={{
+                          padding: "8px 13px",
+                          border: "1px solid #dbe2ea",
+                          borderRadius: "8px",
+                          background: "#ffffff",
+                          color: "#334155",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Assign / Change
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-
     </div>
-
   );
-
 }
