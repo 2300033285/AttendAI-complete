@@ -10,6 +10,9 @@ from app.security import get_current_user, require_roles
 from app.crud.shift_analytics import get_shift_analytics
 from app.schemas.shift_analytics import ShiftAnalyticsResponse
 
+from app.crud.qr_analytics import get_qr_analytics
+from app.schemas.qr_analytics import QRAnalyticsResponse
+
 # =====================================================
 # IMPORT MODELS
 # =====================================================
@@ -19,6 +22,7 @@ from app.models.employee import Employee
 from app.models.attendance import Attendance
 from app.models.shift import Shift
 from app.models.qr_attendance import QRAttendance
+from app.models.qr_code import QRCode
 
 # =====================================================
 # IMPORT CONTROLLERS
@@ -333,3 +337,22 @@ def shift_analytics(
 ):
 
     return get_shift_analytics(db)
+
+
+# =====================================================
+# QR ATTENDANCE ANALYTICS
+# =====================================================
+
+@app.get(
+    "/qr-analytics",
+    response_model=QRAnalyticsResponse,
+    tags=["QR Analytics"],
+    summary="Get QR Attendance Analytics",
+    description="Returns analytics calculated from QR Attendance data.",
+)
+def qr_analytics(
+    db: Session = Depends(get_db),
+):
+
+    return get_qr_analytics(db)
+

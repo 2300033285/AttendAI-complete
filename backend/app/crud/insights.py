@@ -95,10 +95,12 @@ def get_insights(db: Session):
     # 7. AI PREDICTION
     # -----------------------------------------
 
-    ai_prediction = get_ai_prediction(db)
+    ai_prediction = get_ai_prediction(db, 2)
+    
+    print("AI PREDICTION:", ai_prediction)
 
     # -----------------------------------------
-    # FINAL INSIGHTS
+    # 8. FINAL INSIGHTS
     # -----------------------------------------
 
     return {

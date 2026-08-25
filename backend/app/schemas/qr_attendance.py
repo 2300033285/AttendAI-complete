@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import date, time
 
 
 class QRAttendanceScan(BaseModel):
@@ -7,11 +7,12 @@ class QRAttendanceScan(BaseModel):
 
 
 class QRAttendanceResponse(BaseModel):
-    id: int
+    message: str
     employee_id: int
-    qr_token: str
-    scanned_at: datetime
+    user_id: int
+    attendance_id: int
+    date: date
+    check_in: time
+    check_out: time | None
     status: str
-
-    class Config:
-        from_attributes = True
+    qr_attendance_id: int
