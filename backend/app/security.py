@@ -7,51 +7,81 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
+
+# =====================================================
+# LOAD ENVIRONMENT VARIABLES
+# =====================================================
+
 load_dotenv()
 
-# Password hashing
+
+# =====================================================
+# PASSWORD HASHING
+# =====================================================
+
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto"
 )
 
-# JWT Settings
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY is missing! Check your .env file.")
-
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-# Swagger Bearer Authentication
-security = HTTPBearer()
-
-
-# -------------------------
-# Password Functions
-# -------------------------
 
 def hash_password(password: str):
     return pwd_context.hash(password)
 
 
-def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-# -------------------------
-# JWT Token Creation
-# -------------------------
-
-def create_access_token(data: dict):
-    to_encode = data.copy()
-
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+def verify_password(
+    plain_password: str,
+    hashed_password: str
+):
+    return pwd_context.verify(
+        plain_password,
+        hashed_password
     )
 
-    to_encode.update({"exp": expire})
+
+# =====================================================
+# JWT SETTINGS
+# =====================================================
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+if not SECRET_KEY:
+    raise ValueError(
+        "SECRET_KEY is missing! Check your .env file."
+    )
+
+
+ALGORITHM = "HS256"
+
+# Token expires after 24 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+
+
+# =====================================================
+# BEARER AUTHENTICATION
+# =====================================================
+
+security = HTTPBearer()
+
+
+# =====================================================
+# JWT TOKEN CREATION
+# =====================================================
+
+def create_access_token(data: dict):
+
+    to_encode = data.copy()
+
+    expire = (
+        datetime.now(timezone.utc)
+        + timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        )
+    )
+
+    to_encode.update({
+        "exp": expire
+    })
 
     token = jwt.encode(
         to_encode,
@@ -62,26 +92,22 @@ def create_access_token(data: dict):
     return token
 
 
-# -------------------------
-# Get Current User
-# -------------------------
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
-
-security = HTTPBearer()
+# =====================================================
+# GET CURRENT USER
+# =====================================================
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
+
     token = credentials.credentials
 
-    # Handle cases where "Bearer " is accidentally included
+    # Extra safety in case "Bearer " is included
     if token.startswith("Bearer "):
         token = token[7:]
 
     try:
+
         payload = jwt.decode(
             token,
             SECRET_KEY,
@@ -91,26 +117,45 @@ def get_current_user(
         return payload
 
     except JWTError as e:
+
         print("JWT Error:", e)
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or Expired Token"
         )
 
-# -------------------------
-# Role Based Access Control
-# -------------------------
+
+# =====================================================
+# ROLE BASED ACCESS CONTROL
+# =====================================================
 
 def require_roles(allowed_roles: list):
-    def role_checker(current_user=Depends(get_current_user)):
 
-        if current_user["role"] not in allowed_roles:
+    def role_checker(
+        current_user=Depends(get_current_user)
+    ):
+
+        user_role = current_user.get("role")
+
+        if user_role not in allowed_roles:
+
+            # Same message for VS Code terminal and API response
+            message = (
+                "Access denied. You do not have permission to "
+                "perform this action. Please contact your "
+                "administrator if you require access."
+            )
+
+            # Show in VS Code terminal
+            print(message)
+
+            # Show in Swagger / Frontend
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access Denied"
+                detail=message
             )
 
         return current_user
 
     return role_checker
-#

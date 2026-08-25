@@ -3,8 +3,11 @@ from datetime import date
 from typing import Optional
 
 
+# ==========================================
+# CREATE EMPLOYEE
+# ==========================================
+
 class EmployeeCreate(BaseModel):
-    employee_id: str
     first_name: str
     last_name: str
     email: EmailStr
@@ -15,6 +18,10 @@ class EmployeeCreate(BaseModel):
     salary: float
     shift_id: Optional[int] = None
 
+
+# ==========================================
+# UPDATE EMPLOYEE
+# ==========================================
 
 class EmployeeUpdate(BaseModel):
     first_name: str
@@ -29,9 +36,12 @@ class EmployeeUpdate(BaseModel):
     shift_id: Optional[int] = None
 
 
+# ==========================================
+# EMPLOYEE RESPONSE
+# ==========================================
+
 class EmployeeResponse(BaseModel):
     id: int
-    employee_id: str
     first_name: str
     last_name: str
     email: EmailStr
