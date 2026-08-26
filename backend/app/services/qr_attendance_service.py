@@ -1,16 +1,16 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime
 
 from app.models.qr_attendance import QRAttendance
 from app.models.qr_code import QRCode
 from app.models.employee import Employee
 from app.models.user import User
-from app.models.attendance import Attendance
+
+from app.services.attendance_service import check_in_service
 
 
 # ==========================================
-# SCAN QR AND MARK ATTENDANCE
+# SCAN QR AND MARK CHECK-IN
 # ==========================================
 
 def scan_qr_attendance_service(
@@ -18,7 +18,6 @@ def scan_qr_attendance_service(
     employee_id: int,
     qr_token: str
 ):
-
     # ==========================================
     # 1. CHECK QR TOKEN
     # ==========================================
@@ -71,72 +70,22 @@ def scan_qr_attendance_service(
         )
 
     # ==========================================
-    # 4. CURRENT DATE AND TIME
+    # 4. CHECK-IN
     # ==========================================
 
-    now = datetime.now()
-    today = now.date()
-    current_time = now.time()
-
-    # ==========================================
-    # 5. CHECK TODAY'S ATTENDANCE
-    # ==========================================
-
-    attendance = (
-        db.query(Attendance)
-        .filter(
-            Attendance.user_id == user.id,
-            Attendance.date == today
-        )
-        .order_by(Attendance.id.desc())
-        .first()
+    attendance, error = check_in_service(
+        db,
+        user.id
     )
 
-    # ==========================================
-    # 6. FIRST SCAN → CHECK-IN
-    # ==========================================
-
-    if attendance is None:
-
-        attendance = Attendance(
-            user_id=user.id,
-            date=today,
-            check_in=current_time,
-            check_out=None,
-            status="Present"
-        )
-
-        db.add(attendance)
-        db.flush()
-
-        action = "Check-in"
-
-    # ==========================================
-    # 7. SECOND SCAN → CHECK-OUT
-    # ==========================================
-
-    elif attendance.check_out is None:
-
-        attendance.check_out = current_time
-        attendance.status = "Present"
-
-        db.flush()
-
-        action = "Check-out"
-
-    # ==========================================
-    # 8. ALREADY COMPLETED
-    # ==========================================
-
-    else:
-
+    if error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Attendance already completed for today."
+            detail=error
         )
 
     # ==========================================
-    # 9. SAVE QR SCAN LOG
+    # 5. SAVE QR SCAN LOG
     # ==========================================
 
     qr_attendance = QRAttendance(
@@ -148,7 +97,7 @@ def scan_qr_attendance_service(
     db.add(qr_attendance)
 
     # ==========================================
-    # 10. COMMIT
+    # 6. COMMIT
     # ==========================================
 
     db.commit()
@@ -157,11 +106,11 @@ def scan_qr_attendance_service(
     db.refresh(qr_attendance)
 
     # ==========================================
-    # 11. RETURN RESULT
+    # 7. RETURN RESULT
     # ==========================================
 
     return {
-        "message": f"{action} successful.",
+        "message": "Check-in successful.",
         "employee_id": employee_id,
         "user_id": user.id,
         "attendance_id": attendance.id,
