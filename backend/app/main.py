@@ -39,7 +39,9 @@ from app.controllers import shift
 from app.controllers import auth
 from app.controllers import employee
 from app.controllers import attendance
+from app.controllers import employee_attendance_analytics
 from app.controllers import qr_attendance
+from app.controllers import attendance_analytics
 
 # =====================================================
 # USER CRUD
@@ -114,6 +116,9 @@ app.include_router(auth.router)
 app.include_router(employee.router)
 app.include_router(shift.router)
 app.include_router(attendance.router)
+app.include_router(
+    employee_attendance_analytics.router
+)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
 app.include_router(analytics.router)
@@ -122,6 +127,7 @@ app.include_router(ai_prediction.router)
 app.include_router(insights.router)
 app.include_router(anomaly.router)
 app.include_router(qr_attendance.router)
+app.include_router(attendance_analytics.router)
 
 # =====================================================
 # HOME
