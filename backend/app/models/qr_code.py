@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -15,6 +15,13 @@ class QRCode(Base):
         unique=True,
         index=True,
         nullable=False
+    )
+
+    employee_id = Column(
+        Integer,
+        ForeignKey("employees.id"),
+        nullable=False,
+        index=True
     )
 
     is_active = Column(

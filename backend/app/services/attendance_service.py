@@ -16,6 +16,8 @@ from app.schemas.attendance import (
 )
 
 from app.models.attendance import Attendance
+from app.models.user import User
+from app.models.employee import Employee
 
 
 def create_attendance_service(db: Session, attendance: AttendanceCreate):
@@ -113,3 +115,168 @@ def check_out_service(db: Session, user_id: int):
     db.refresh(attendance)
 
     return attendance, None
+
+
+# ============================================================
+# ATTENDANCE HISTORY SERVICE
+# ============================================================
+
+def get_attendance_history_service(
+    db: Session,
+    user_id: int | None = None,
+    employee_id: int | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+):
+    query = (
+        db.query(Attendance, User, Employee)
+        .join(
+            User,
+            Attendance.user_id == User.id,
+        )
+        .outerjoin(
+            Employee,
+            Employee.email == User.email,
+        )
+    )
+
+    # Filter by user
+    if user_id is not None:
+        query = query.filter(
+            Attendance.user_id == user_id
+        )
+
+    # Filter by employee
+    if employee_id is not None:
+        query = query.filter(
+            Employee.id == employee_id
+        )
+
+    # Filter by starting date
+    if start_date is not None:
+        query = query.filter(
+            Attendance.date >= start_date
+        )
+
+    # Filter by ending date
+    if end_date is not None:
+        query = query.filter(
+            Attendance.date <= end_date
+        )
+
+    # Latest attendance first
+    records = (
+        query
+        .order_by(Attendance.date.desc())
+        .all()
+    )
+
+    result = []
+
+    for attendance, user, employee in records:
+
+        employee_name = None
+
+        if employee:
+            employee_name = (
+                f"{employee.first_name} "
+                f"{employee.last_name}"
+            )
+
+        result.append({
+            "attendance_id": attendance.id,
+            "user_id": attendance.user_id,
+            "employee_id": employee.id if employee else None,
+            "employee_name": employee_name,
+            "email": user.email,
+            "date": attendance.date,
+            "check_in": attendance.check_in,
+            "check_out": attendance.check_out,
+            "status": attendance.status,
+            "created_at": attendance.created_at,
+        })
+
+    return result
+
+# ============================================================
+# ATTENDANCE REPORT SERVICE
+# ============================================================
+
+def get_attendance_report_service(
+    db: Session,
+    user_id: int,
+    employee_id: int,
+    start_date: date,
+    end_date: date,
+):
+    # Get attendance records for the selected employee
+    records = (
+        db.query(Attendance)
+        .filter(
+            Attendance.user_id == user_id,
+            Attendance.date >= start_date,
+            Attendance.date <= end_date,
+        )
+        .order_by(Attendance.date.asc())
+        .all()
+    )
+
+    # Get employee details
+    employee = (
+        db.query(Employee)
+        .filter(Employee.id == employee_id)
+        .first()
+    )
+
+    # Get user details
+    user = (
+        db.query(User)
+        .filter(User.id == user_id)
+        .first()
+    )
+
+    # Total days in selected date range
+    total_days = (end_date - start_date).days + 1
+
+    # Count present days
+    present_days = sum(
+        1
+        for record in records
+        if record.status == "Present"
+    )
+
+    # Days without attendance records
+    absent_days = total_days - present_days
+
+    # Calculate attendance percentage
+    attendance_percentage = (
+        (present_days / total_days) * 100
+        if total_days > 0
+        else 0
+    )
+
+    # Employee name
+    employee_name = None
+
+    if employee:
+        employee_name = (
+            f"{employee.first_name} "
+            f"{employee.last_name}"
+        )
+
+    return {
+        "employee_id": employee_id,
+        "user_id": user_id,
+        "employee_name": employee_name,
+        "email": user.email if user else None,
+        "start_date": start_date,
+        "end_date": end_date,
+        "total_days": total_days,
+        "total_attendance_records": len(records),
+        "present_days": present_days,
+        "absent_days": absent_days,
+        "attendance_percentage": round(
+            attendance_percentage,
+            2,
+        ),
+    }
