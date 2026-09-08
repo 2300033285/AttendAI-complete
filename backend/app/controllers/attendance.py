@@ -125,7 +125,7 @@ def get_attendance_history(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    role = current_user.get("role")
+    role = (current_user.get("role") or "").lower()
     current_user_id = current_user.get("id")
 
     # Validate date range
@@ -139,7 +139,7 @@ def get_attendance_history(
     # ADMIN
     # =========================
 
-    if role == "Admin":
+    if role == "admin":
         return get_attendance_history_service(
             db=db,
             employee_id=employee_id,
@@ -151,7 +151,7 @@ def get_attendance_history(
     # EMPLOYEE
     # =========================
 
-    if role == "Employee":
+    if role == "employee":
         return get_attendance_history_service(
             db=db,
             user_id=current_user_id,
@@ -189,7 +189,7 @@ def get_attendance_report(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    role = current_user.get("role")
+    role = (current_user.get("role") or "").lower()
     current_user_id = current_user.get("id")
 
     # =========================
@@ -206,7 +206,7 @@ def get_attendance_report(
     # ADMIN REPORT
     # =========================
 
-    if role == "Admin":
+    if role == "admin":
 
         if employee_id is None:
             raise HTTPException(
@@ -250,7 +250,7 @@ def get_attendance_report(
     # EMPLOYEE REPORT
     # =========================
 
-    if role == "Employee":
+    if role == "employee":
 
         employee = (
             db.query(Employee)
