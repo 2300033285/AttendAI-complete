@@ -23,6 +23,7 @@ from app.models.attendance import Attendance
 from app.models.shift import Shift
 from app.models.qr_attendance import QRAttendance
 from app.models.qr_code import QRCode
+from app.models.leave import Leave
 
 # =====================================================
 # IMPORT CONTROLLERS
@@ -42,6 +43,7 @@ from app.controllers import attendance
 from app.controllers import employee_attendance_analytics
 from app.controllers import qr_attendance
 from app.controllers import attendance_analytics
+from app.controllers.leave import router as leave_router
 
 # =====================================================
 # USER CRUD
@@ -116,9 +118,7 @@ app.include_router(auth.router)
 app.include_router(employee.router)
 app.include_router(shift.router)
 app.include_router(attendance.router)
-app.include_router(
-    employee_attendance_analytics.router
-)
+app.include_router(employee_attendance_analytics.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
 app.include_router(analytics.router)
@@ -128,6 +128,7 @@ app.include_router(insights.router)
 app.include_router(anomaly.router)
 app.include_router(qr_attendance.router)
 app.include_router(attendance_analytics.router)
+app.include_router(leave_router)
 
 # =====================================================
 # HOME
