@@ -44,6 +44,13 @@ from app.controllers import employee_attendance_analytics
 from app.controllers import qr_attendance
 from app.controllers import attendance_analytics
 from app.controllers.leave import router as leave_router
+from app.controllers.leave_analytics import router as leave_analytics_router
+from app.controllers.leave_anomaly import router as leave_anomaly_router
+from app.controllers.leave_insights import router as leave_insights_router
+from app.controllers.leave_reports import router as leave_reports_router
+from app.controllers.leave_ai_features import (
+    router as leave_ai_features_router
+)
 
 # =====================================================
 # USER CRUD
@@ -129,6 +136,11 @@ app.include_router(anomaly.router)
 app.include_router(qr_attendance.router)
 app.include_router(attendance_analytics.router)
 app.include_router(leave_router)
+app.include_router(leave_analytics_router)
+app.include_router(leave_anomaly_router)
+app.include_router(leave_insights_router)
+app.include_router(leave_reports_router)
+app.include_router(leave_ai_features_router)
 
 # =====================================================
 # HOME

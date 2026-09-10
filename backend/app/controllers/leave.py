@@ -46,9 +46,9 @@ def apply_leave(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    role = current_user.get("role")
+    role = (current_user.get("role") or "").lower()
 
-    if role != "Employee":
+    if role != "employee":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only employees can apply for leave.",
@@ -95,9 +95,9 @@ def get_my_leaves(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    role = current_user.get("role")
+    role = (current_user.get("role") or "").lower()
 
-    if role != "Employee":
+    if role != "employee":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only employees can access their leave history.",
@@ -135,9 +135,9 @@ def get_all_leaves(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    role = current_user.get("role")
+    role = (current_user.get("role") or "").lower()
 
-    if role != "Admin":
+    if role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required.",
@@ -170,14 +170,14 @@ def get_leave(
             detail="Leave not found.",
         )
 
-    role = current_user.get("role")
+    role = (current_user.get("role") or "").lower()
 
     # Admin can access any leave
-    if role == "Admin":
+    if role == "admin":
         return leave
 
     # Employee can access only their own leave
-    if role == "Employee":
+    if role == "employee":
         employee = (
             db.query(Employee)
             .filter(
@@ -219,7 +219,7 @@ def approve_leave(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.get("role") != "Admin":
+    if (current_user.get("role") or "").lower() != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required.",
@@ -253,7 +253,7 @@ def reject_leave(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.get("role") != "Admin":
+    if (current_user.get("role") or "").lower() != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required.",

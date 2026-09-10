@@ -138,19 +138,31 @@ def require_roles(allowed_roles: list):
 
         user_role = current_user.get("role")
 
-        if user_role not in allowed_roles:
+        if not user_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User role not found in token."
+            )
 
-            # Same message for VS Code terminal and API response
+        user_role = user_role.strip().lower()
+
+        allowed_roles_normalized = [
+            role.strip().lower()
+            for role in allowed_roles
+        ]
+
+        if user_role not in allowed_roles_normalized:
+
             message = (
                 "Access denied. You do not have permission to "
                 "perform this action. Please contact your "
                 "administrator if you require access."
             )
 
-            # Show in VS Code terminal
             print(message)
+            print("JWT Role:", user_role)
+            print("Allowed Roles:", allowed_roles_normalized)
 
-            # Show in Swagger / Frontend
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=message

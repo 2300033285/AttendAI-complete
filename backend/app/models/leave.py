@@ -1,4 +1,12 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Text
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Date,
+    DateTime,
+    Text,
+    Index,
+)
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -7,30 +15,68 @@ from app.database import Base
 class Leave(Base):
     __tablename__ = "leaves"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
-    employee_id = Column(Integer, nullable=False, index=True)
+    employee_id = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
 
-    leave_type = Column(String(50), nullable=False)
+    leave_type = Column(
+        String(50),
+        nullable=False
+    )
 
-    start_date = Column(Date, nullable=False)
-    end_date = Column(Date, nullable=False)
+    start_date = Column(
+        Date,
+        nullable=False
+    )
 
-    reason = Column(Text, nullable=False)
+    end_date = Column(
+        Date,
+        nullable=False
+    )
+
+    reason = Column(
+        Text,
+        nullable=False
+    )
 
     status = Column(
         String(20),
         nullable=False,
-        default="Pending",
+        default="Pending"
     )
 
     applied_at = Column(
         DateTime,
         nullable=False,
-        server_default=func.now(),
+        server_default=func.now()
     )
 
     reviewed_at = Column(
         DateTime,
-        nullable=True,
+        nullable=True
+    )
+
+    __table_args__ = (
+        Index(
+            "idx_leave_employee_status_date",
+            "employee_id",
+            "status",
+            "start_date",
+        ),
+        Index(
+            "idx_leave_type",
+            "leave_type",
+        ),
+        Index(
+            "idx_leave_start_date",
+            "start_date",
+        ),
     )
