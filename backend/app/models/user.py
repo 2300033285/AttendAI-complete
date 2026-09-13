@@ -13,6 +13,11 @@ class User(Base):
         index=True
     )
 
+    employee_id = Column(
+        String(20),
+        nullable=False
+    )
+
     username = Column(
         String(50),
         nullable=False
