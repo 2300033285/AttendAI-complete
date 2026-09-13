@@ -14,8 +14,8 @@ class User(Base):
     )
 
     employee_id = Column(
-        String(20),
-        nullable=False
+    String(20),
+    nullable=True
     )
 
     username = Column(

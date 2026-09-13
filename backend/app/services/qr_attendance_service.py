@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -8,6 +8,7 @@ from app.models.qr_code import QRCode
 from app.models.employee import Employee
 from app.models.user import User
 from app.models.attendance import Attendance
+from app.models.shift import Shift
 
 from app.services.attendance_service import (
     check_in_service,
@@ -24,6 +25,7 @@ def scan_qr_attendance_service(
     employee_id: int,
     qr_token: str,
 ):
+
     # ==========================================
     # 1. CHECK QR TOKEN
     # ==========================================
@@ -59,7 +61,9 @@ def scan_qr_attendance_service(
 
     employee = (
         db.query(Employee)
-        .filter(Employee.id == employee_id)
+        .filter(
+            Employee.id == employee_id
+        )
         .first()
     )
 
@@ -70,12 +74,14 @@ def scan_qr_attendance_service(
         )
 
     # ==========================================
-    # 4. FIND USER USING EMPLOYEE EMAIL
+    # 4. FIND USER
     # ==========================================
 
     user = (
         db.query(User)
-        .filter(User.email == employee.email)
+        .filter(
+            User.email == employee.email
+        )
         .first()
     )
 
@@ -86,7 +92,25 @@ def scan_qr_attendance_service(
         )
 
     # ==========================================
-    # 5. FIND TODAY'S ATTENDANCE
+    # 5. FIND EMPLOYEE SHIFT
+    # ==========================================
+
+    shift = (
+        db.query(Shift)
+        .filter(
+            Shift.id == employee.shift_id
+        )
+        .first()
+    )
+
+    if shift is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Shift not assigned to this employee.",
+        )
+
+    # ==========================================
+    # 6. FIND TODAY'S ATTENDANCE
     # ==========================================
 
     today = date.today()
@@ -101,7 +125,7 @@ def scan_qr_attendance_service(
     )
 
     # ==========================================
-    # 6. FIRST SCAN → CHECK-IN
+    # 7. FIRST QR SCAN → CHECK-IN
     # ==========================================
 
     if attendance is None:
@@ -121,10 +145,110 @@ def scan_qr_attendance_service(
         message = "Check-in successful."
 
     # ==========================================
-    # 7. SECOND SCAN → CHECK-OUT
+    # 8. SECOND QR SCAN → CHECK-OUT
     # ==========================================
 
-    elif attendance.check_in is not None and attendance.check_out is None:
+    elif (
+        attendance.check_in is not None
+        and attendance.check_out is None
+    ):
+
+        current_time = datetime.now()
+
+        # ------------------------------------------
+        # Scheduled shift start and end
+        # ------------------------------------------
+
+        shift_start = datetime.combine(
+            today,
+            shift.start_time,
+        )
+
+        shift_end = datetime.combine(
+            today,
+            shift.end_time,
+        )
+
+        # ------------------------------------------
+        # Employee actual check-in time
+        # ------------------------------------------
+
+        check_in_datetime = datetime.combine(
+            today,
+            attendance.check_in,
+        )
+
+        # ------------------------------------------
+        # Calculate late minutes
+        # ------------------------------------------
+
+        late_minutes = 0
+
+        if check_in_datetime > shift_start:
+
+            late_minutes = int(
+                (
+                    check_in_datetime - shift_start
+                ).total_seconds() / 60
+            )
+
+        # ------------------------------------------
+        # Calculate required checkout time
+        # ------------------------------------------
+
+        if late_minutes >= 30:
+
+            # Employee was 30 minutes or more late.
+            # Add the complete late duration
+            # to the normal shift end time.
+
+            required_checkout = (
+                shift_end
+                + timedelta(minutes=late_minutes)
+            )
+
+        else:
+
+            # Less than 30 minutes late.
+            # Normal shift end time applies.
+
+            required_checkout = shift_end
+
+        # ------------------------------------------
+        # Prevent early checkout
+        # ------------------------------------------
+
+        if current_time < required_checkout:
+
+            remaining_seconds = int(
+                (
+                    required_checkout - current_time
+                ).total_seconds()
+            )
+
+            remaining_minutes = (
+                remaining_seconds // 60
+            )
+
+            remaining_seconds = (
+                remaining_seconds % 60
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Cannot check out yet. "
+                    f"Required checkout time is "
+                    f"{required_checkout.strftime('%H:%M:%S')}. "
+                    f"Remaining time: "
+                    f"{remaining_minutes} minutes "
+                    f"{remaining_seconds} seconds."
+                ),
+            )
+
+        # ------------------------------------------
+        # Checkout allowed
+        # ------------------------------------------
 
         attendance, error = check_out_service(
             db,
@@ -141,7 +265,7 @@ def scan_qr_attendance_service(
         message = "Check-out successful."
 
     # ==========================================
-    # 8. ALREADY CHECKED OUT
+    # 9. ALREADY CHECKED OUT
     # ==========================================
 
     else:
@@ -152,7 +276,7 @@ def scan_qr_attendance_service(
         )
 
     # ==========================================
-    # 9. SAVE QR SCAN LOG
+    # 10. SAVE QR SCAN LOG
     # ==========================================
 
     qr_attendance = QRAttendance(
@@ -164,7 +288,7 @@ def scan_qr_attendance_service(
     db.add(qr_attendance)
 
     # ==========================================
-    # 10. COMMIT
+    # 11. COMMIT
     # ==========================================
 
     db.commit()
@@ -173,7 +297,7 @@ def scan_qr_attendance_service(
     db.refresh(qr_attendance)
 
     # ==========================================
-    # 11. RETURN RESULT
+    # 12. RETURN RESULT
     # ==========================================
 
     return {
