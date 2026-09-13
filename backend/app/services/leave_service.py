@@ -4,15 +4,17 @@ from sqlalchemy.orm import Session
 
 from app.crud.leave import (
     create_leave,
-    get_leave_by_id,
     get_leaves_by_employee,
     get_all_leaves,
-    update_leave_status,
 )
 
-from app.schemas.leave import LeaveCreate, LeaveUpdate
+from app.schemas.leave import LeaveCreate
 from app.models.leave import Leave
 
+
+# ============================================================
+# APPLY LEAVE
+# ============================================================
 
 def apply_leave_service(
     db: Session,
@@ -42,6 +44,7 @@ def apply_leave_service(
     if overlapping_leave:
         return None, "Leave dates overlap with an existing leave."
 
+    # Create leave
     created_leave = create_leave(
         db,
         employee_id,
@@ -50,6 +53,10 @@ def apply_leave_service(
 
     return created_leave, None
 
+
+# ============================================================
+# GET EMPLOYEE LEAVES
+# ============================================================
 
 def get_employee_leaves_service(
     db: Session,
@@ -61,55 +68,51 @@ def get_employee_leaves_service(
     )
 
 
+# ============================================================
+# GET ALL LEAVES
+# ============================================================
+
 def get_all_leaves_service(
     db: Session,
 ):
     return get_all_leaves(db)
 
 
-def get_leave_service(
-    db: Session,
-    leave_id: int,
-):
-    return get_leave_by_id(
-        db,
-        leave_id,
-    )
+# ============================================================
+# APPROVE / REJECT LEAVE BY EMPLOYEE ID
+# ============================================================
 
-
-def update_leave_status_service(
+def update_leave_status_by_employee_service(
     db: Session,
-    leave_id: int,
+    employee_id: int,
     status: str,
 ):
-    leave = get_leave_by_id(
-        db,
-        leave_id,
-    )
-
-    if leave is None:
-        return None, "Leave not found."
-
-    if leave.status != "Pending":
-        return None, "Only pending leaves can be approved or rejected."
-
+    # Validate status
     if status not in ["Approved", "Rejected"]:
         return None, "Status must be Approved or Rejected."
 
-    leave_update = LeaveUpdate(
-        status=status
+    # Find the employee's pending leave
+    leave = (
+        db.query(Leave)
+        .filter(
+            Leave.employee_id == employee_id,
+            Leave.status == "Pending",
+        )
+        .order_by(
+            Leave.start_date.asc()
+        )
+        .first()
     )
 
-    updated_leave = update_leave_status(
-        db,
-        leave_id,
-        leave_update,
-    )
+    # No pending leave
+    if leave is None:
+        return None, "No pending leave found for this employee."
 
-    if updated_leave:
-        updated_leave.reviewed_at = datetime.now()
+    # Update status
+    leave.status = status
+    leave.reviewed_at = datetime.now()
 
-        db.commit()
-        db.refresh(updated_leave)
+    db.commit()
+    db.refresh(leave)
 
-    return updated_leave, None
+    return leave, None

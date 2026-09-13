@@ -12,6 +12,7 @@ from app.database import get_db
 from app.security import get_current_user
 
 from app.models.employee import Employee
+
 from app.schemas.leave import (
     LeaveCreate,
     LeaveResponse,
@@ -21,8 +22,7 @@ from app.services.leave_service import (
     apply_leave_service,
     get_employee_leaves_service,
     get_all_leaves_service,
-    get_leave_service,
-    update_leave_status_service,
+    update_leave_status_by_employee_service,
 )
 
 
@@ -147,75 +147,15 @@ def get_all_leaves(
 
 
 # ============================================================
-# GET SINGLE LEAVE
+# ADMIN - GET LEAVES BY EMPLOYEE ID
 # ============================================================
 
 @router.get(
-    "/{leave_id}",
-    response_model=LeaveResponse,
+    "/{employee_id}",
+    response_model=List[LeaveResponse],
 )
-def get_leave(
-    leave_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    leave = get_leave_service(
-        db,
-        leave_id,
-    )
-
-    if leave is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Leave not found.",
-        )
-
-    role = current_user.get("role")
-
-    # Admin can access any leave
-    if role == "Admin":
-        return leave
-
-    # Employee can access only their own leave
-    if role == "Employee":
-        employee = (
-            db.query(Employee)
-            .filter(
-                Employee.email == current_user.get("sub")
-            )
-            .first()
-        )
-
-        if employee is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Employee profile not found.",
-            )
-
-        if leave.employee_id != employee.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only access your own leave.",
-            )
-
-        return leave
-
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Access denied.",
-    )
-
-
-# ============================================================
-# ADMIN - APPROVE LEAVE
-# ============================================================
-
-@router.put(
-    "/{leave_id}/approve",
-    response_model=LeaveResponse,
-)
-def approve_leave(
-    leave_id: int,
+def get_employee_leaves(
+    employee_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -225,15 +165,56 @@ def approve_leave(
             detail="Admin access required.",
         )
 
-    updated_leave, error = update_leave_status_service(
-        db=db,
-        leave_id=leave_id,
-        status="Approved",
+    employee = (
+        db.query(Employee)
+        .filter(
+            Employee.id == employee_id
+        )
+        .first()
+    )
+
+    if employee is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee not found.",
+        )
+
+    return get_employee_leaves_service(
+        db,
+        employee_id,
+    )
+
+
+# ============================================================
+# ADMIN - APPROVE LEAVE BY EMPLOYEE ID
+# ============================================================
+
+@router.put(
+    "/{employee_id}/approve",
+    response_model=LeaveResponse,
+)
+def approve_leave(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.get("role") != "Admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+
+    updated_leave, error = (
+        update_leave_status_by_employee_service(
+            db=db,
+            employee_id=employee_id,
+            status="Approved",
+        )
     )
 
     if error:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=error,
         )
 
@@ -241,15 +222,15 @@ def approve_leave(
 
 
 # ============================================================
-# ADMIN - REJECT LEAVE
+# ADMIN - REJECT LEAVE BY EMPLOYEE ID
 # ============================================================
 
 @router.put(
-    "/{leave_id}/reject",
+    "/{employee_id}/reject",
     response_model=LeaveResponse,
 )
 def reject_leave(
-    leave_id: int,
+    employee_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -259,15 +240,17 @@ def reject_leave(
             detail="Admin access required.",
         )
 
-    updated_leave, error = update_leave_status_service(
-        db=db,
-        leave_id=leave_id,
-        status="Rejected",
+    updated_leave, error = (
+        update_leave_status_by_employee_service(
+            db=db,
+            employee_id=employee_id,
+            status="Rejected",
+        )
     )
 
     if error:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=error,
         )
 
