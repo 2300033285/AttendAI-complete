@@ -14,6 +14,7 @@ def create_user(db: Session, user: UserCreate):
 
     print("\n========== CREATE USER DEBUG ==========")
     print("REGISTER EMAIL:", user.email)
+    print("EMPLOYEE ID RECEIVED:", user.employee_id)
 
     # Check existing email
     existing_user = (
@@ -40,6 +41,7 @@ def create_user(db: Session, user: UserCreate):
 
     # Create user
     new_user = User(
+        employee_id=user.employee_id,
         username=user.username,
         email=user.email.lower(),
         password=hashed_password,
@@ -56,6 +58,7 @@ def create_user(db: Session, user: UserCreate):
 
         print("USER CREATED SUCCESSFULLY")
         print("USER ID:", new_user.id)
+        print("EMPLOYEE ID:", new_user.employee_id)
         print("EMAIL:", new_user.email)
         print("=====================================\n")
 
@@ -73,7 +76,6 @@ def create_user(db: Session, user: UserCreate):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create user"
         )
-
 
 # ==========================================
 # GET ALL USERS

@@ -6,11 +6,11 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 # ==========================================
 
 class UserCreate(BaseModel):
+    employee_id: str
     username: str
     email: EmailStr
     password: str
     role: str = "Employee"
-
     department: str = "General"
     phone: str = "Not Provided"
 
@@ -42,6 +42,7 @@ class UserLogin(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
+    employee_id: str
     username: str
     email: EmailStr
     department: str
