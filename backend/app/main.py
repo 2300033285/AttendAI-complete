@@ -25,6 +25,7 @@ from app.models.qr_attendance import QRAttendance
 from app.models.qr_code import QRCode
 from app.models.leave import Leave
 from app.models.opening import Opening
+from app.models.referral import Referral
 
 # =====================================================
 # IMPORT CONTROLLERS
@@ -45,6 +46,7 @@ from app.controllers import employee_attendance_analytics
 from app.controllers import qr_attendance
 from app.controllers import attendance_analytics
 from app.controllers import opening
+from app.controllers import referral
 from app.controllers.leave import router as leave_router
 from app.controllers.leave_analytics import router as leave_analytics_router
 from app.controllers.leave_anomaly import router as leave_anomaly_router
@@ -144,6 +146,7 @@ app.include_router(leave_insights_router)
 app.include_router(leave_reports_router)
 app.include_router(leave_ai_features_router)
 app.include_router(opening.router)
+app.include_router(referral.router) 
 
 # =====================================================
 # HOME

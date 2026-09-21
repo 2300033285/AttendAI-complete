@@ -65,6 +65,8 @@ def login_service(
     print("USER FOUND!")
     print("USER ID:", db_user.id)
     print("STORED EMAIL:", db_user.email)
+    print("EMPLOYEE ID:", db_user.employee_id)
+    print("ROLE:", db_user.role)
 
     # Verify password
     password_valid = verify_password(
@@ -90,12 +92,14 @@ def login_service(
         data={
             "id": db_user.id,
             "sub": db_user.email,
-            "role": db_user.role
+            "role": db_user.role,
+            "employee_id": db_user.employee_id
         }
     )
 
     print("RESULT: LOGIN SUCCESSFUL")
     print("TOKEN CREATED SUCCESSFULLY")
+    print("EMPLOYEE ID INCLUDED:", db_user.employee_id)
     print("=================================\n")
 
     return {
