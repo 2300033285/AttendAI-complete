@@ -112,9 +112,10 @@ def generate_qr_token(
 ):
     # -----------------------------------------------------
     # Check Admin role
+    # Case-insensitive: ADMIN / Admin / admin
     # -----------------------------------------------------
 
-    if current_user.get("role") != "Admin":
+    if str(current_user.get("role", "")).strip().lower() != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
@@ -179,7 +180,7 @@ def qr_attendance_analytics(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.get("role") != "Admin":
+    if str(current_user.get("role", "")).strip().lower() != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
@@ -201,7 +202,7 @@ def qr_attendance_daily_analytics(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.get("role") != "Admin":
+    if str(current_user.get("role", "")).strip().lower() != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
@@ -223,7 +224,7 @@ def qr_attendance_employee_analytics(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.get("role") != "Admin":
+    if str(current_user.get("role", "")).strip().lower() != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
@@ -245,7 +246,7 @@ def qr_attendance_anomalies(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.get("role") != "Admin":
+    if str(current_user.get("role", "")).strip().lower() != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",

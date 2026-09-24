@@ -16,10 +16,21 @@ from app.database import Base
 class Employee(Base):
     __tablename__ = "employees"
 
-    id = Column(Integer, primary_key=True, index=True)
+    # Primary key
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
+    # Employee code
+    employee_id = Column(
+        String(20),
+        unique=True,
+        nullable=False
+    )
 
-
+    # Employee details
     first_name = Column(
         String(50),
         nullable=False
@@ -51,19 +62,23 @@ class Employee(Base):
         nullable=False
     )
 
+    # Joining date
     joining_date = Column(
         Date,
         nullable=False
     )
 
+    # Salary
     salary = Column(
         Float,
         nullable=False
     )
 
+    # Employee active/inactive status
     status = Column(
         Boolean,
-        default=True
+        default=True,
+        nullable=False
     )
 
     # Shift assigned to employee
@@ -73,6 +88,7 @@ class Employee(Base):
         nullable=True
     )
 
+    # Record creation timestamp
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now()

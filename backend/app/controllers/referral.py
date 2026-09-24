@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.security import require_roles
 
+from app.models.employee import Employee
+
 from app.schemas.referral import (
     ReferralCreate,
     ReferralUpdate,
@@ -49,28 +51,43 @@ def create_referral(
         require_roles(["Employee"])
     ),
 ):
-    # JWT payload is a dictionary
-    employee_id_value = current_user.get("employee_id")
 
-    if employee_id_value is None:
+    # -------------------------------------------------
+    # Get logged-in user's email from JWT
+    # -------------------------------------------------
+
+    user_email = current_user.get("sub")
+
+    if user_email is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Employee profile is not linked to this user.",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User email missing from authentication token.",
         )
 
-    # Convert employee ID from string to integer
-    try:
-        employee_id = int(employee_id_value)
-    except (TypeError, ValueError):
+    # -------------------------------------------------
+    # Find employee using email
+    # -------------------------------------------------
+
+    employee = (
+        db.query(Employee)
+        .filter(Employee.email == user_email)
+        .first()
+    )
+
+    if employee is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid employee ID associated with this user.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No employee profile found for this user.",
         )
+
+    # -------------------------------------------------
+    # Create referral
+    # -------------------------------------------------
 
     created_referral, error = create_referral_service(
         db=db,
         referral=referral,
-        employee_id=employee_id,
+        employee_id=employee.id,
     )
 
     if error:
@@ -115,27 +132,38 @@ def get_my_referrals(
         require_roles(["Employee"])
     ),
 ):
-    # JWT payload is a dictionary
-    employee_id_value = current_user.get("employee_id")
 
-    if employee_id_value is None:
+    # -------------------------------------------------
+    # Get logged-in user's email
+    # -------------------------------------------------
+
+    user_email = current_user.get("sub")
+
+    if user_email is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Employee profile is not linked to this user.",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User email missing from authentication token.",
         )
 
-    # Convert employee ID from string to integer
-    try:
-        employee_id = int(employee_id_value)
-    except (TypeError, ValueError):
+    # -------------------------------------------------
+    # Find employee using email
+    # -------------------------------------------------
+
+    employee = (
+        db.query(Employee)
+        .filter(Employee.email == user_email)
+        .first()
+    )
+
+    if employee is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid employee ID associated with this user.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No employee profile found for this user.",
         )
 
     return get_employee_referrals_service(
         db=db,
-        employee_id=employee_id,
+        employee_id=employee.id,
     )
 
 
@@ -155,6 +183,7 @@ def get_referral(
         require_roles(["Admin"])
     ),
 ):
+
     referral = get_referral_service(
         db=db,
         referral_id=referral_id,
@@ -186,6 +215,7 @@ def update_referral(
         require_roles(["Admin"])
     ),
 ):
+
     updated_referral, error = update_referral_service(
         db=db,
         referral_id=referral_id,
@@ -220,6 +250,7 @@ def delete_referral(
         require_roles(["Admin"])
     ),
 ):
+
     deleted_referral, error = delete_referral_service(
         db=db,
         referral_id=referral_id,

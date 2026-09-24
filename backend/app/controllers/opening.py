@@ -25,6 +25,12 @@ from app.services.opening_service import (
     delete_opening_service,
 )
 
+from app.crud.opening_analytics import get_opening_analytics
+from app.crud.opening_reports import get_opening_report
+from app.crud.opening_anomaly import get_opening_anomalies
+from app.crud.opening_insights import get_opening_insights
+from app.crud.opening_ai import get_opening_ai_data
+
 
 router = APIRouter(
     prefix="/openings",
@@ -77,6 +83,87 @@ def get_all_openings(
 ):
     return get_all_openings_service(db)
 
+
+# =====================================================
+# OPENING ANALYTICS - ADMIN ONLY
+# =====================================================
+
+@router.get(
+    "/analytics",
+    status_code=status.HTTP_200_OK,
+)
+def opening_analytics(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_roles(["Admin"])
+    ),
+):
+    return get_opening_analytics(db)
+
+
+# =====================================================
+# OPENING REPORTS - ADMIN ONLY
+# =====================================================
+
+@router.get(
+    "/reports",
+    status_code=status.HTTP_200_OK,
+)
+def opening_reports(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_roles(["Admin"])
+    ),
+):
+    return get_opening_report(db)
+
+
+# =====================================================
+# OPENING ANOMALIES - ADMIN ONLY
+# =====================================================
+
+@router.get(
+    "/anomalies",
+    status_code=status.HTTP_200_OK,
+)
+def opening_anomalies(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_roles(["Admin"])
+    ),
+):
+    return get_opening_anomalies(db)
+# =====================================================
+# OPENING INSIGHTS - ADMIN ONLY
+# =====================================================
+
+@router.get(
+    "/insights",
+    status_code=status.HTTP_200_OK,
+)
+def opening_insights(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_roles(["Admin"])
+    ),
+):
+    return get_opening_insights(db)
+
+# =====================================================
+# OPENING AI DATA - ADMIN ONLY
+# =====================================================
+
+@router.get(
+    "/ai-data",
+    status_code=status.HTTP_200_OK,
+)
+def opening_ai_data(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_roles(["Admin"])
+    ),
+):
+    return get_opening_ai_data(db)
 
 # =====================================================
 # GET OPENING BY ID - ADMIN + EMPLOYEE

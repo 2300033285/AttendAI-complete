@@ -13,6 +13,7 @@ from app.schemas.shift_analytics import ShiftAnalyticsResponse
 from app.crud.qr_analytics import get_qr_analytics
 from app.schemas.qr_analytics import QRAnalyticsResponse
 
+
 # =====================================================
 # IMPORT MODELS
 # =====================================================
@@ -26,6 +27,27 @@ from app.models.qr_code import QRCode
 from app.models.leave import Leave
 from app.models.opening import Opening
 from app.models.referral import Referral
+
+
+# =====================================================
+# IMPORT REFERRAL ANALYTICS, INSIGHTS & ANOMALY
+# =====================================================
+
+from app.controllers.referral_analytics import (
+    router as referral_analytics_router
+)
+
+from app.controllers.referral_insights import (
+    router as referral_insights_router
+)
+
+from app.controllers.referral_anomaly import (
+    router as referral_anomaly_router
+)
+
+from app.controllers.referral_ai import (
+    router as referral_ai_router
+)
 
 # =====================================================
 # IMPORT CONTROLLERS
@@ -47,14 +69,36 @@ from app.controllers import qr_attendance
 from app.controllers import attendance_analytics
 from app.controllers import opening
 from app.controllers import referral
-from app.controllers.leave import router as leave_router
-from app.controllers.leave_analytics import router as leave_analytics_router
-from app.controllers.leave_anomaly import router as leave_anomaly_router
-from app.controllers.leave_insights import router as leave_insights_router
-from app.controllers.leave_reports import router as leave_reports_router
+
+
+# =====================================================
+# LEAVE MANAGEMENT CONTROLLERS
+# =====================================================
+
+from app.controllers.leave import (
+    router as leave_router
+)
+
+from app.controllers.leave_analytics import (
+    router as leave_analytics_router
+)
+
+from app.controllers.leave_anomaly import (
+    router as leave_anomaly_router
+)
+
+from app.controllers.leave_insights import (
+    router as leave_insights_router
+)
+
+from app.controllers.leave_reports import (
+    router as leave_reports_router
+)
+
 from app.controllers.leave_ai_features import (
     router as leave_ai_features_router
 )
+
 
 # =====================================================
 # USER CRUD
@@ -67,31 +111,43 @@ from app.crud.user import (
     delete_user,
 )
 
+
 # =====================================================
 # USER SCHEMAS
 # =====================================================
 
-from app.schemas.user import UserUpdate, UserResponse
+from app.schemas.user import (
+    UserUpdate,
+    UserResponse
+)
+
 
 # =====================================================
 # SERVICES
 # =====================================================
 
-from app.services.user_service import profile_service
+from app.services.user_service import (
+    profile_service
+)
 
 
 # =====================================================
 # MODELS LOADED
 # =====================================================
 
-print("Models Loaded:", Base.metadata.tables.keys())
+print(
+    "Models Loaded:",
+    Base.metadata.tables.keys()
+)
 
 
 # =====================================================
 # CREATE DATABASE TABLES
 # =====================================================
 
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(
+    bind=engine
+)
 
 
 # =====================================================
@@ -111,10 +167,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
+
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ],
+
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -122,31 +180,123 @@ app.add_middleware(
 
 
 # =====================================================
-# REGISTER ROUTERS
+# REGISTER STANDARD ROUTERS
 # =====================================================
 
-app.include_router(auth.router)
-app.include_router(employee.router)
-app.include_router(shift.router)
-app.include_router(attendance.router)
-app.include_router(employee_attendance_analytics.router)
-app.include_router(dashboard.router)
-app.include_router(reports.router)
-app.include_router(analytics.router)
-app.include_router(employee_analytics.router)
-app.include_router(ai_prediction.router)
-app.include_router(insights.router)
-app.include_router(anomaly.router)
-app.include_router(qr_attendance.router)
-app.include_router(attendance_analytics.router)
-app.include_router(leave_router)
-app.include_router(leave_analytics_router)
-app.include_router(leave_anomaly_router)
-app.include_router(leave_insights_router)
-app.include_router(leave_reports_router)
-app.include_router(leave_ai_features_router)
-app.include_router(opening.router)
-app.include_router(referral.router) 
+app.include_router(
+    auth.router
+)
+
+app.include_router(
+    employee.router
+)
+
+app.include_router(
+    shift.router
+)
+
+app.include_router(
+    attendance.router
+)
+
+app.include_router(
+    employee_attendance_analytics.router
+)
+
+app.include_router(
+    dashboard.router
+)
+
+app.include_router(
+    reports.router
+)
+
+app.include_router(
+    analytics.router
+)
+
+app.include_router(
+    employee_analytics.router
+)
+
+app.include_router(
+    ai_prediction.router
+)
+
+app.include_router(
+    insights.router
+)
+
+app.include_router(
+    anomaly.router
+)
+
+app.include_router(
+    qr_attendance.router
+)
+
+app.include_router(
+    attendance_analytics.router
+)
+
+
+# =====================================================
+# LEAVE MANAGEMENT ROUTERS
+# =====================================================
+
+app.include_router(
+    leave_router
+)
+
+app.include_router(
+    leave_analytics_router
+)
+
+app.include_router(
+    leave_anomaly_router
+)
+
+app.include_router(
+    leave_insights_router
+)
+
+app.include_router(
+    leave_reports_router
+)
+
+app.include_router(
+    leave_ai_features_router
+)
+
+
+# =====================================================
+# OPENINGS & REFERRAL ROUTERS
+# =====================================================
+
+app.include_router(
+    opening.router
+)
+
+app.include_router(
+    referral.router
+)
+
+app.include_router(
+    referral_analytics_router
+)
+
+app.include_router(
+    referral_insights_router
+)
+
+app.include_router(
+    referral_anomaly_router
+)
+
+app.include_router(
+    referral_ai_router
+)
+
 
 # =====================================================
 # HOME
@@ -159,6 +309,7 @@ app.include_router(referral.router)
     description="Welcome endpoint of AttendAI Backend.",
 )
 def root():
+
     return {
         "message": "Welcome to AttendAI Backend"
     }
@@ -179,6 +330,7 @@ def db_test():
     try:
 
         connection = engine.connect()
+
         connection.close()
 
         return {
@@ -230,7 +382,9 @@ def profile(
 )
 def users(
     current_user=Depends(
-        require_roles(["Admin", "HR", "Manager"])
+        require_roles(
+            ["Admin", "HR", "Manager"]
+        )
     ),
     db: Session = Depends(get_db),
 ):
@@ -252,9 +406,13 @@ def users(
 )
 def user_by_id(
     user_id: int,
+
     current_user=Depends(
-        require_roles(["Admin", "HR", "Manager"])
+        require_roles(
+            ["Admin", "HR", "Manager"]
+        )
     ),
+
     db: Session = Depends(get_db),
 ):
 
@@ -288,9 +446,13 @@ def user_by_id(
 def update_user_api(
     user_id: int,
     user: UserUpdate,
+
     current_user=Depends(
-        require_roles(["Admin", "HR"])
+        require_roles(
+            ["Admin", "HR"]
+        )
     ),
+
     db: Session = Depends(get_db),
 ):
 
@@ -323,9 +485,13 @@ def update_user_api(
 )
 def delete(
     user_id: int,
+
     current_user=Depends(
-        require_roles(["Admin"])
+        require_roles(
+            ["Admin"]
+        )
     ),
+
     db: Session = Depends(get_db),
 ):
 
@@ -380,4 +546,3 @@ def qr_analytics(
 ):
 
     return get_qr_analytics(db)
-
