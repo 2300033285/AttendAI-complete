@@ -8,7 +8,6 @@ from typing import Optional
 # ==========================================
 
 class EmployeeCreate(BaseModel):
-    employee_id: str
     first_name: str
     last_name: str
     email: EmailStr
@@ -25,7 +24,6 @@ class EmployeeCreate(BaseModel):
 # ==========================================
 
 class EmployeeUpdate(BaseModel):
-    employee_id: str
     first_name: str
     last_name: str
     email: EmailStr
@@ -44,7 +42,6 @@ class EmployeeUpdate(BaseModel):
 
 class EmployeeResponse(BaseModel):
     id: int
-    employee_id: str
     first_name: str
     last_name: str
     email: EmailStr

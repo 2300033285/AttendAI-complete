@@ -6,11 +6,10 @@ from app.models.shift import Shift
 from app.schemas.employee import EmployeeCreate, EmployeeUpdate
 
 
-# ==========================================
-# VALIDATE SHIFT
-# ==========================================
-
 def validate_shift(db: Session, shift_id: int | None):
+    """
+    Validate that the shift exists and is active.
+    """
 
     if shift_id is None:
         return
@@ -24,73 +23,25 @@ def validate_shift(db: Session, shift_id: int | None):
     if not shift:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Shift not found"
+            detail="Shift not found",
         )
 
     if not shift.status:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot assign an inactive shift"
+            detail="Cannot assign an inactive shift",
         )
 
-
-# ==========================================
-# CREATE EMPLOYEE
-# ==========================================
 
 def create_employee(
     db: Session,
     employee: EmployeeCreate
 ):
+    # Validate shift before creating employee
+    validate_shift(db, employee.shift_id)
 
-    # Check duplicate employee ID
-    existing_employee = (
-        db.query(Employee)
-        .filter(
-            Employee.employee_id == employee.employee_id
-        )
-        .first()
-    )
-
-    if existing_employee:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Employee ID already exists"
-        )
-
-    # Check duplicate email
-    existing_email = (
-        db.query(Employee)
-        .filter(
-            Employee.email == employee.email.lower()
-        )
-        .first()
-    )
-
-    if existing_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Employee email already exists"
-        )
-
-    # Validate shift
-    validate_shift(
-        db,
-        employee.shift_id
-    )
-
-    # Create employee
     db_employee = Employee(
-        employee_id=employee.employee_id,
-        first_name=employee.first_name,
-        last_name=employee.last_name,
-        email=employee.email.lower(),
-        phone=employee.phone,
-        department=employee.department,
-        designation=employee.designation,
-        joining_date=employee.joining_date,
-        salary=employee.salary,
-        shift_id=employee.shift_id
+        **employee.model_dump()
     )
 
     db.add(db_employee)
@@ -100,25 +51,16 @@ def create_employee(
     return db_employee
 
 
-# ==========================================
-# GET ALL EMPLOYEES
-# ==========================================
-
 def get_all_employees(
     db: Session
 ):
     return db.query(Employee).all()
 
 
-# ==========================================
-# GET EMPLOYEE BY DATABASE ID
-# ==========================================
-
 def get_employee_by_id(
     db: Session,
     employee_id: int
 ):
-
     return (
         db.query(Employee)
         .filter(Employee.id == employee_id)
@@ -126,16 +68,11 @@ def get_employee_by_id(
     )
 
 
-# ==========================================
-# UPDATE EMPLOYEE
-# ==========================================
-
 def update_employee(
     db: Session,
     employee_id: int,
     employee: EmployeeUpdate
 ):
-
     db_employee = get_employee_by_id(
         db,
         employee_id
@@ -148,19 +85,14 @@ def update_employee(
         exclude_unset=True
     )
 
-    # Validate shift
+    # Validate shift only when shift_id is being changed
     if "shift_id" in update_data:
         validate_shift(
             db,
             update_data["shift_id"]
         )
 
-    # Update fields
     for key, value in update_data.items():
-
-        if key == "email":
-            value = value.lower()
-
         setattr(
             db_employee,
             key,
@@ -173,15 +105,10 @@ def update_employee(
     return db_employee
 
 
-# ==========================================
-# DELETE EMPLOYEE
-# ==========================================
-
 def delete_employee(
     db: Session,
     employee_id: int
 ):
-
     db_employee = get_employee_by_id(
         db,
         employee_id
