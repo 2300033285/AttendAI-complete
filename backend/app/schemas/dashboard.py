@@ -1,34 +1,73 @@
+from datetime import date, time
+from typing import Optional
+
 from pydantic import BaseModel
 
 
-class DashboardResponse(BaseModel):
+# ============================================================
+# EMPLOYEE DASHBOARD SCHEMAS
+# ============================================================
+
+class EmployeeRecentAttendance(BaseModel):
+    date: date
+    status: str
+    check_in: Optional[time] = None
+    check_out: Optional[time] = None
+
+
+class EmployeeAttendanceDashboard(BaseModel):
+    today_status: str
+    login_time: Optional[time] = None
+    check_out_time: Optional[time] = None
+    attendance_percentage: float
+    recent_attendance: list[EmployeeRecentAttendance]
+
+
+class EmployeeLeaveDashboard(BaseModel):
+    pending: int
+    approved: int
+    rejected: int
+
+
+class EmployeeReferralDashboard(BaseModel):
+    pending: int
+    accepted: int
+    rejected: int
+
+
+class EmployeeDashboardResponse(BaseModel):
+    role: str
+    attendance: EmployeeAttendanceDashboard
+    leave: EmployeeLeaveDashboard
+    referrals: EmployeeReferralDashboard
+
+
+# ============================================================
+# ADMIN DASHBOARD SCHEMA
+# ============================================================
+
+class AdminDashboardResponse(BaseModel):
     role: str
 
-    # Employee statistics
     total_employees: int
     active_employees: int
 
-    # Attendance statistics
     total_attendance: int
     present: int
     absent: int
     late: int
 
-    # Today's attendance
     today_present: int
     today_absent: int
     today_late: int
 
-    # Leave statistics
     total_leaves: int
     pending_leaves: int
     approved_leaves: int
     rejected_leaves: int
 
-    # Job openings
     openings: int
 
-    # Referral statistics
     total_referrals: int
     pending_referrals: int
     accepted_referrals: int

@@ -8,6 +8,10 @@ from app.models.opening import Opening
 from app.models.referral import Referral
 
 
+# ============================================================
+# ADMIN DASHBOARD
+# ============================================================
+
 def get_admin_dashboard_stats(db: Session):
 
     # ---------------------------------------------------------
@@ -26,7 +30,7 @@ def get_admin_dashboard_stats(db: Session):
     )
 
     # ---------------------------------------------------------
-    # Overall Attendance Statistics
+    # Attendance Statistics
     # ---------------------------------------------------------
 
     total_attendance = (
@@ -53,7 +57,7 @@ def get_admin_dashboard_stats(db: Session):
     )
 
     # ---------------------------------------------------------
-    # Today's Attendance Statistics
+    # Today's Attendance
     # ---------------------------------------------------------
 
     today_present = (
@@ -141,10 +145,6 @@ def get_admin_dashboard_stats(db: Session):
         .count()
     )
 
-    # ---------------------------------------------------------
-    # Dashboard Response
-    # ---------------------------------------------------------
-
     return {
         "role": "Admin",
 
@@ -173,6 +173,10 @@ def get_admin_dashboard_stats(db: Session):
     }
 
 
+# ============================================================
+# EMPLOYEE DASHBOARD
+# ============================================================
+
 def get_employee_dashboard_stats(
     db: Session,
     user_id: int,
@@ -180,7 +184,7 @@ def get_employee_dashboard_stats(
 ):
 
     # ---------------------------------------------------------
-    # Employee Profile
+    # Verify Employee
     # ---------------------------------------------------------
 
     employee = (
@@ -189,100 +193,97 @@ def get_employee_dashboard_stats(
         .first()
     )
 
-    total_employees = 1 if employee else 0
-
-    active_employees = (
-        1
-        if employee and employee.status
-        else 0
-    )
+    if employee is None:
+        return None
 
     # ---------------------------------------------------------
-    # Employee Attendance Statistics
+    # Today's Attendance
+    # ---------------------------------------------------------
+
+    today_attendance = (
+        db.query(Attendance)
+        .filter(
+            Attendance.user_id == user_id,
+            Attendance.date == func.current_date(),
+        )
+        .first()
+    )
+
+    if today_attendance:
+        today_status = today_attendance.status
+        login_time = today_attendance.check_in
+        check_out_time = today_attendance.check_out
+    else:
+        today_status = "Not Checked In"
+        login_time = None
+        check_out_time = None
+
+    # ---------------------------------------------------------
+    # Attendance Percentage
     # ---------------------------------------------------------
 
     total_attendance = (
         db.query(Attendance)
-        .filter(Attendance.user_id == user_id)
-        .count()
-    )
-
-    present = (
-        db.query(Attendance)
         .filter(
-            Attendance.user_id == user_id,
-            Attendance.status == "Present"
+            Attendance.user_id == user_id
         )
         .count()
     )
 
-    absent = (
+    present_days = (
         db.query(Attendance)
         .filter(
             Attendance.user_id == user_id,
-            Attendance.status == "Absent"
+            Attendance.status == "Present",
         )
         .count()
     )
 
-    late = (
-        db.query(Attendance)
-        .filter(
-            Attendance.user_id == user_id,
-            Attendance.status == "Late"
+    attendance_percentage = (
+        round(
+            (present_days / total_attendance) * 100,
+            2,
         )
-        .count()
+        if total_attendance > 0
+        else 0.0
     )
 
     # ---------------------------------------------------------
-    # Today's Employee Attendance
+    # Recent Attendance
     # ---------------------------------------------------------
 
-    today_present = (
+    recent_records = (
         db.query(Attendance)
         .filter(
-            Attendance.user_id == user_id,
-            Attendance.date == func.current_date(),
-            Attendance.status == "Present"
+            Attendance.user_id == user_id
         )
-        .count()
+        .order_by(
+            Attendance.date.desc(),
+            Attendance.id.desc(),
+        )
+        .limit(5)
+        .all()
     )
 
-    today_absent = (
-        db.query(Attendance)
-        .filter(
-            Attendance.user_id == user_id,
-            Attendance.date == func.current_date(),
-            Attendance.status == "Absent"
-        )
-        .count()
-    )
-
-    today_late = (
-        db.query(Attendance)
-        .filter(
-            Attendance.user_id == user_id,
-            Attendance.date == func.current_date(),
-            Attendance.status == "Late"
-        )
-        .count()
-    )
+    recent_attendance = [
+        {
+            "date": record.date,
+            "status": record.status,
+            "check_in": record.check_in,
+            "check_out": record.check_out,
+        }
+        for record in recent_records
+    ]
 
     # ---------------------------------------------------------
-    # Employee Leave Statistics
+    # Leave Statistics
     # ---------------------------------------------------------
-
-    total_leaves = (
-        db.query(Leave)
-        .filter(Leave.employee_id == employee_id)
-        .count()
-    )
 
     pending_leaves = (
         db.query(Leave)
         .filter(
             Leave.employee_id == employee_id,
-            Leave.status == "Pending"
+            Leave.status == "Pending",
         )
         .count()
     )
@@ -291,7 +292,7 @@ def get_employee_dashboard_stats(
         db.query(Leave)
         .filter(
             Leave.employee_id == employee_id,
-            Leave.status == "Approved"
+            Leave.status == "Approved",
         )
         .count()
     )
@@ -300,36 +301,20 @@ def get_employee_dashboard_stats(
         db.query(Leave)
         .filter(
             Leave.employee_id == employee_id,
-            Leave.status == "Rejected"
+            Leave.status == "Rejected",
         )
         .count()
     )
 
     # ---------------------------------------------------------
-    # Available Job Openings
+    # Referral Statistics
     # ---------------------------------------------------------
-
-    openings = (
-        db.query(Opening)
-        .filter(Opening.status == "Open")
-        .count()
-    )
-
-    # ---------------------------------------------------------
-    # Employee Referral Statistics
-    # ---------------------------------------------------------
-
-    total_referrals = (
-        db.query(Referral)
-        .filter(Referral.employee_id == employee_id)
-        .count()
-    )
 
     pending_referrals = (
         db.query(Referral)
         .filter(
             Referral.employee_id == employee_id,
-            Referral.status == "Pending"
+            Referral.status == "Pending",
         )
         .count()
     )
@@ -338,38 +323,44 @@ def get_employee_dashboard_stats(
         db.query(Referral)
         .filter(
             Referral.employee_id == employee_id,
-            Referral.status == "Accepted"
+            Referral.status == "Accepted",
+        )
+        .count()
+    )
+
+    rejected_referrals = (
+        db.query(Referral)
+        .filter(
+            Referral.employee_id == employee_id,
+            Referral.status == "Rejected",
         )
         .count()
     )
 
     # ---------------------------------------------------------
-    # Dashboard Response
+    # Employee Dashboard Response
     # ---------------------------------------------------------
 
     return {
         "role": "Employee",
 
-        "total_employees": total_employees,
-        "active_employees": active_employees,
+        "attendance": {
+            "today_status": today_status,
+            "login_time": login_time,
+            "check_out_time": check_out_time,
+            "attendance_percentage": attendance_percentage,
+            "recent_attendance": recent_attendance,
+        },
 
-        "total_attendance": total_attendance,
-        "present": present,
-        "absent": absent,
-        "late": late,
+        "leave": {
+            "pending": pending_leaves,
+            "approved": approved_leaves,
+            "rejected": rejected_leaves,
+        },
 
-        "today_present": today_present,
-        "today_absent": today_absent,
-        "today_late": today_late,
-
-        "total_leaves": total_leaves,
-        "pending_leaves": pending_leaves,
-        "approved_leaves": approved_leaves,
-        "rejected_leaves": rejected_leaves,
-
-        "openings": openings,
-
-        "total_referrals": total_referrals,
-        "pending_referrals": pending_referrals,
-        "accepted_referrals": accepted_referrals,
+        "referrals": {
+            "pending": pending_referrals,
+            "accepted": accepted_referrals,
+            "rejected": rejected_referrals,
+        },
     }
