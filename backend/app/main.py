@@ -54,6 +54,7 @@ from app.controllers.referral_ai import (
 # =====================================================
 
 from app.controllers import dashboard
+from app.controllers import dashboard_analytics
 from app.controllers import reports
 from app.controllers import analytics
 from app.controllers import employee_analytics
@@ -205,6 +206,10 @@ app.include_router(
 
 app.include_router(
     dashboard.router
+)
+
+app.include_router(
+    dashboard_analytics.router
 )
 
 app.include_router(

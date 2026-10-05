@@ -1,86 +1,130 @@
+from datetime import time
+
+from sqlalchemy import func, case, and_
 from sqlalchemy.orm import Session
+
 from app.models.attendance import Attendance
 
 
 def get_analytics(db: Session):
-    records = db.query(Attendance).all()
-    
 
-    if not records:
-        return {
-            "attendance_percentage": 0,
-            "present_days": 0,
-            "absent_days": 0,
-            "late_count": 0,
-            "average_hours": 0
-        }
+    # =====================================================
+    # ATTENDANCE CONDITIONS
+    # =====================================================
 
-    total_records = len(records)
-
-    present_days = sum(
-        1 for record in records
-        if record.status.lower() == "present"
+    present_condition = (
+        func.lower(Attendance.status) == "present"
     )
 
-    absent_days = sum(
-        1 for record in records
-        if record.status.lower() == "absent"
+    absent_condition = (
+        func.lower(Attendance.status) == "absent"
     )
+
+    late_status_condition = (
+        func.lower(Attendance.status) == "late"
+    )
+
+    # Present records with valid check-in and check-out
+    working_condition = and_(
+        present_condition,
+        Attendance.check_in.isnot(None),
+        Attendance.check_out.isnot(None)
+    )
+
+    # Late records:
+    # 1. Explicitly marked as Late
+    # 2. Present but checked in after 09:00
+    late_condition = and_(
+        Attendance.check_in.isnot(None),
+        (
+            late_status_condition
+            | and_(
+                present_condition,
+                Attendance.check_in > time(9, 0)
+            )
+        )
+    )
+
+    # =====================================================
+    # DATABASE AGGREGATION
+    # =====================================================
+
+    result = db.query(
+        func.count(Attendance.id).label(
+            "total_records"
+        ),
+
+        func.sum(
+            case(
+                (present_condition, 1),
+                else_=0
+            )
+        ).label("present_days"),
+
+        func.sum(
+            case(
+                (absent_condition, 1),
+                else_=0
+            )
+        ).label("absent_days"),
+
+        func.sum(
+            case(
+                (late_condition, 1),
+                else_=0
+            )
+        ).label("late_count"),
+
+        func.avg(
+            case(
+                (
+                    working_condition,
+                    func.extract(
+                        "epoch",
+                        Attendance.check_out
+                        - Attendance.check_in
+                    ) / 3600.0
+                ),
+                else_=None
+            )
+        ).label("average_hours")
+
+    ).one()
+
+    # =====================================================
+    # HANDLE NULL VALUES
+    # =====================================================
+
+    total_records = result.total_records or 0
+    present_days = result.present_days or 0
+    absent_days = result.absent_days or 0
+    late_count = result.late_count or 0
+    average_hours = result.average_hours or 0
+
+    # =====================================================
+    # ATTENDANCE PERCENTAGE
+    # =====================================================
 
     attendance_percentage = (
         (present_days / total_records) * 100
-        if total_records > 0 else 0
+        if total_records > 0
+        else 0
     )
 
-    # Calculate average working hours
-    total_hours = 0
-    working_records = 0
-
-    for record in records:
-        if (
-            record.status.lower() == "present"
-            and record.check_in
-            and record.check_out
-        ):
-            check_in = (
-                record.check_in.hour +
-                record.check_in.minute / 60
-            )
-
-            check_out = (
-                record.check_out.hour +
-                record.check_out.minute / 60
-            )
-
-            total_hours += (check_out - check_in)
-            working_records += 1
-
-    average_hours = (
-        round(total_hours / working_records, 2)
-        if working_records > 0 else 0
-    )
-
-    # Calculate late count (after 9:00 AM)
-    late_count = 0
-
-    for record in records:
-        if (
-            record.status.lower() == "present"
-            and record.check_in
-        ):
-            if (
-                record.check_in.hour > 9 or
-                (
-                    record.check_in.hour == 9
-                    and record.check_in.minute > 0
-                )
-            ):
-                late_count += 1
+    # =====================================================
+    # FINAL RESPONSE
+    # =====================================================
 
     return {
-        "attendance_percentage": round(attendance_percentage, 2),
-        "present_days": present_days,
-        "absent_days": absent_days,
-        "late_count": late_count,
-        "average_hours": average_hours,
+        "attendance_percentage": round(
+            attendance_percentage,
+            2
+        ),
+        "present_days": int(present_days),
+        "absent_days": int(absent_days),
+        "late_count": int(late_count),
+        "average_hours": round(
+            float(average_hours),
+            2
+        )
     }

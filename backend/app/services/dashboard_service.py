@@ -4,6 +4,8 @@ from app.crud.dashboard import (
     get_admin_dashboard_stats,
     get_employee_dashboard_stats,
 )
+from app.models.user import User
+from app.models.employee import Employee
 
 
 def dashboard_service(
@@ -11,39 +13,46 @@ def dashboard_service(
     current_user: dict,
 ):
 
-    role = current_user.get("role")
+    role = str(current_user.get("role") or "").strip().lower()
 
     # ========================================================
     # ADMIN
     # ========================================================
 
-    if role == "Admin":
+    if role == "admin":
         return get_admin_dashboard_stats(db), None
 
     # ========================================================
     # EMPLOYEE
     # ========================================================
 
-    if role == "Employee":
+    if role == "employee":
 
         user_id = current_user.get("id")
-        employee_id_value = current_user.get("employee_id")
 
         if user_id is None:
             return None, "User ID is missing from token."
 
-        if employee_id_value is None:
-            return None, "Employee profile is not linked to this user."
+        # Find the logged-in user
+        user = db.query(User).filter(
+            User.id == int(user_id)
+        ).first()
 
-        try:
-            employee_id = int(employee_id_value)
-        except (TypeError, ValueError):
-            return None, "Invalid employee ID associated with this user."
+        if user is None:
+            return None, "User not found."
+
+        # Find the employee profile using the user's email
+        employee = db.query(Employee).filter(
+            Employee.email == user.email
+        ).first()
+
+        if employee is None:
+            return None, "Employee profile not found."
 
         dashboard_data = get_employee_dashboard_stats(
             db=db,
-            user_id=int(user_id),
-            employee_id=employee_id,
+            user_id=user.id,
+            employee_id=employee.id,
         )
 
         if dashboard_data is None:
