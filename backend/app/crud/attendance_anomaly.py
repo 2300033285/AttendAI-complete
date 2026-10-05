@@ -26,7 +26,11 @@ def get_anomalies(db: Session):
             anomalies.append({
                 "attendance_id": record.id,
                 "user_id": record.user_id,
-                "status": "Absent"
+                "status": "Absent",
+                "anomaly_type": "Absent Attendance",
+                "severity": "Medium",
+                "description": "Employee was marked absent for the attendance record.",
+                "source": "Rule-Based Detection",
             })
 
             continue
@@ -40,7 +44,11 @@ def get_anomalies(db: Session):
             anomalies.append({
                 "attendance_id": record.id,
                 "user_id": record.user_id,
-                "status": "Late"
+                "status": "Late",
+                "anomaly_type": "Late Attendance",
+                "severity": "Low",
+                "description": "Employee was marked as late for the attendance record.",
+                "source": "Rule-Based Detection",
             })
 
         # =====================================================
@@ -58,7 +66,11 @@ def get_anomalies(db: Session):
             anomalies.append({
                 "attendance_id": record.id,
                 "user_id": record.user_id,
-                "status": "Incomplete Attendance"
+                "status": "Incomplete Attendance",
+                "anomaly_type": "Incomplete Attendance",
+                "severity": "Medium",
+                "description": "Attendance record is missing check-in or check-out information.",
+                "source": "Rule-Based Detection",
             })
 
             continue
@@ -96,7 +108,14 @@ def get_anomalies(db: Session):
                 anomalies.append({
                     "attendance_id": record.id,
                     "user_id": record.user_id,
-                    "status": "Excessive Working Hours"
+                    "status": "Excessive Working Hours",
+                    "anomaly_type": "Excessive Working Hours",
+                    "severity": "High",
+                    "description": (
+                        f"Employee worked for approximately "
+                        f"{worked_hours:.2f} hours, exceeding the 10-hour threshold."
+                    ),
+                    "source": "Rule-Based Detection",
                 })
 
     return {
