@@ -1,3 +1,4 @@
+
 from sqlalchemy.orm import Session
 
 from app.crud.attendance_anomaly import get_anomalies
@@ -13,9 +14,9 @@ def anomaly_service(db: Session):
 
 def employee_anomaly_service(
     db: Session,
-    employee_id: int
+    employee_id: int,
 ):
-    # Verify employee exists
+    # 1. Verify that the employee exists
     employee = (
         db.query(Employee)
         .filter(Employee.id == employee_id)
@@ -25,43 +26,54 @@ def employee_anomaly_service(
     if employee is None:
         return None
 
-    # Find user linked to this employee
+    # 2. Find the linked user by matching email
     user = (
         db.query(User)
-        .filter(User.employee_id == str(employee_id))
+        .filter(User.email == employee.email)
         .first()
     )
 
-    # Attendance anomalies
-    attendance_result = get_anomalies(db)
-
+    # 3. Get attendance anomalies for this user only
     attendance_anomalies = []
 
     if user:
-        attendance_anomalies = [
-            anomaly
-            for anomaly in attendance_result["anomalies"]
-            if anomaly["user_id"] == user.id
-        ]
+        attendance_result = get_anomalies(
+            db=db,
+            user_id=user.id,
+        )
 
-    # Leave anomalies
+        attendance_anomalies = attendance_result.get(
+            "anomalies", []
+        )
+
+    # 4. Detect leave anomalies
     leave_result = detect_leave_anomalies(
         db=db,
-        employee_id=employee_id
+        employee_id=employee_id,
     )
 
-    # Referral anomalies
+    # 5. Detect referral anomalies
     referral_result = detect_referral_anomalies(
         db=db,
-        employee_id=employee_id
+        employee_id=employee_id,
     )
 
+    # 6. Calculate the combined anomaly count
     total_anomalies = (
         len(attendance_anomalies)
-        + (1 if leave_result["anomaly_detected"] else 0)
-        + (1 if referral_result["anomaly_detected"] else 0)
+        + (
+            1
+            if leave_result["anomaly_detected"]
+            else 0
+        )
+        + (
+            1
+            if referral_result["anomaly_detected"]
+            else 0
+        )
     )
 
+    # 7. Return the combined results
     return {
         "employee_id": employee_id,
         "total_anomalies": total_anomalies,

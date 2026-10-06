@@ -5,14 +5,9 @@ from app.models.attendance import Attendance
 
 
 def get_shift_analytics(db: Session):
-
-    # Get all shifts
     shifts = db.query(Shift).all()
-
-    # Get all attendance records
     attendance_records = db.query(Attendance).all()
 
-    # If there are no shifts
     if not shifts:
         return {
             "total_shifts": 0,
@@ -20,204 +15,109 @@ def get_shift_analytics(db: Session):
             "missed_shifts": 0,
             "average_shift_hours": 0,
             "overtime_hours": 0,
-            "shift_wise_attendance": {}
+            "shift_wise_attendance": {},
         }
 
-    # -------------------------------------------------
-    # 1. TOTAL SHIFTS
-    # -------------------------------------------------
+    # Count attendance records, not shift definitions.
+    completed_shifts = sum(
+        1 for record in attendance_records
+        if (record.status or "").strip().lower() == "present"
+    )
 
-    total_shifts = len(shifts)
+    missed_shifts = sum(
+        1 for record in attendance_records
+        if (record.status or "").strip().lower() == "absent"
+    )
 
-    # -------------------------------------------------
-    # 2. COMPLETED AND MISSED SHIFTS
-    # -------------------------------------------------
-
-    completed_shifts = 0
-    missed_shifts = 0
-
-    for attendance in attendance_records:
-
-        if (
-            attendance.status
-            and attendance.status.lower() == "present"
-        ):
-            completed_shifts += 1
-
-        elif (
-            attendance.status
-            and attendance.status.lower() == "absent"
-        ):
-            missed_shifts += 1
-
-    # -------------------------------------------------
-    # 3. AVERAGE SHIFT HOURS
-    # -------------------------------------------------
-
+    # Calculate average duration of defined shifts.
     total_shift_minutes = 0
     valid_shift_count = 0
 
     for shift in shifts:
-
         if shift.start_time and shift.end_time:
+            start = shift.start_time.hour * 60 + shift.start_time.minute
+            end = shift.end_time.hour * 60 + shift.end_time.minute
 
-            start_minutes = (
-                shift.start_time.hour * 60
-                + shift.start_time.minute
-            )
+            if end <= start:
+                end += 24 * 60
 
-            end_minutes = (
-                shift.end_time.hour * 60
-                + shift.end_time.minute
-            )
-
-            # Handle overnight shifts
-            if end_minutes <= start_minutes:
-                end_minutes += 24 * 60
-
-            duration = end_minutes - start_minutes
-
-            total_shift_minutes += duration
+            total_shift_minutes += end - start
             valid_shift_count += 1
 
-    if valid_shift_count > 0:
-
-        average_shift_hours = round(
-            total_shift_minutes / valid_shift_count / 60,
-            2
-        )
-
-    else:
-        average_shift_hours = 0
-
-    # -------------------------------------------------
-    # 4. OVERTIME
-    # -------------------------------------------------
-
-    total_overtime_minutes = 0
-
-    for attendance in attendance_records:
-
-        # Only calculate overtime for Present records
-        if (
-            attendance.status
-            and attendance.status.lower() == "present"
-            and attendance.check_in
-            and attendance.check_out
-        ):
-
-            start_minutes = (
-                attendance.check_in.hour * 60
-                + attendance.check_in.minute
-            )
-
-            end_minutes = (
-                attendance.check_out.hour * 60
-                + attendance.check_out.minute
-            )
-
-            # Handle overnight attendance
-            if end_minutes <= start_minutes:
-                end_minutes += 24 * 60
-
-            worked_minutes = end_minutes - start_minutes
-
-            # Standard working time = 8 hours
-            standard_minutes = 8 * 60
-
-            if worked_minutes > standard_minutes:
-
-                total_overtime_minutes += (
-                    worked_minutes - standard_minutes
-                )
-
-    overtime_hours = round(
-        total_overtime_minutes / 60,
-        2
+    average_shift_hours = (
+        round(total_shift_minutes / valid_shift_count / 60, 2)
+        if valid_shift_count else 0
     )
 
-    # -------------------------------------------------
-    # 5. SHIFT-WISE ATTENDANCE
-    # -------------------------------------------------
+    # Calculate overtime for present attendance records.
+    total_overtime_minutes = 0
 
+    for record in attendance_records:
+        if (
+            (record.status or "").strip().lower() == "present"
+            and record.check_in
+            and record.check_out
+        ):
+            start = record.check_in.hour * 60 + record.check_in.minute
+            end = record.check_out.hour * 60 + record.check_out.minute
+
+            if end <= start:
+                end += 24 * 60
+
+            worked_minutes = end - start
+            total_overtime_minutes += max(0, worked_minutes - 480)
+
+    overtime_hours = round(total_overtime_minutes / 60, 2)
+
+    # Match records to shifts using check-in time.
+    # Attendance has no shift_id, so this is an estimate.
     shift_wise_attendance = {}
 
     for shift in shifts:
-
-        shift_name = shift.shift_name
-
         present_count = 0
         absent_count = 0
 
-        for attendance in attendance_records:
+        if not shift.start_time or not shift.end_time:
+            shift_wise_attendance[shift.shift_name] = {
+                "present": 0,
+                "absent": 0,
+                "total": 0,
+            }
+            continue
 
-            # If there is no check-in, we cannot determine
-            # which shift the absent record belongs to.
-            # Therefore, do NOT count it for every shift.
-            if not attendance.check_in:
+        start = shift.start_time.hour * 60 + shift.start_time.minute
+        end = shift.end_time.hour * 60 + shift.end_time.minute
+
+        for record in attendance_records:
+            if not record.check_in:
                 continue
 
-            check_in_minutes = (
-                attendance.check_in.hour * 60
-                + attendance.check_in.minute
-            )
+            check_in = record.check_in.hour * 60 + record.check_in.minute
 
-            shift_start_minutes = (
-                shift.start_time.hour * 60
-                + shift.start_time.minute
-            )
-
-            shift_end_minutes = (
-                shift.end_time.hour * 60
-                + shift.end_time.minute
-            )
-
-            # Normal shift
-            if shift_end_minutes > shift_start_minutes:
-
-                is_matching_shift = (
-                    shift_start_minutes
-                    <= check_in_minutes
-                    < shift_end_minutes
-                )
-
-            # Overnight shift
+            if end > start:
+                matches = start <= check_in < end
             else:
+                matches = check_in >= start or check_in < end
 
-                is_matching_shift = (
-                    check_in_minutes >= shift_start_minutes
-                    or check_in_minutes < shift_end_minutes
-                )
+            if matches:
+                status = (record.status or "").strip().lower()
 
-            if is_matching_shift:
-
-                if (
-                    attendance.status
-                    and attendance.status.lower() == "present"
-                ):
+                if status == "present":
                     present_count += 1
-
-                elif (
-                    attendance.status
-                    and attendance.status.lower() == "absent"
-                ):
+                elif status == "absent":
                     absent_count += 1
 
-        shift_wise_attendance[shift_name] = {
+        shift_wise_attendance[shift.shift_name] = {
             "present": present_count,
             "absent": absent_count,
-            "total": present_count + absent_count
+            "total": present_count + absent_count,
         }
 
-    # -------------------------------------------------
-    # FINAL RESPONSE
-    # -------------------------------------------------
-
     return {
-        "total_shifts": total_shifts,
+        "total_shifts": len(shifts),
         "completed_shifts": completed_shifts,
         "missed_shifts": missed_shifts,
         "average_shift_hours": average_shift_hours,
         "overtime_hours": overtime_hours,
-        "shift_wise_attendance": shift_wise_attendance
+        "shift_wise_attendance": shift_wise_attendance,
     }
