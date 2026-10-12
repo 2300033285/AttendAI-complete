@@ -1,10 +1,10 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.security import get_current_user
 from app.models.user import User
-
 from app.schemas.ai_prediction import AIPredictionResponse
 from app.services.ai_prediction_service import ai_prediction_service
 
@@ -24,7 +24,6 @@ def get_ai_prediction_api(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-
     user_email = current_user.get("sub")
 
     if user_email is None:

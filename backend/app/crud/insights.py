@@ -4,13 +4,12 @@ from app.crud.employee_analytics import get_employee_analytics
 from app.crud.analytics import get_analytics
 from app.crud.shift_analytics import get_shift_analytics
 from app.crud.attendance_anomaly import get_anomalies
-from app.crud.ai_prediction import get_ai_prediction
 
 from app.services.leave_anomaly_service import detect_leave_anomalies
 from app.services.referral_anomaly_service import detect_referral_anomalies
 
 from app.models.employee import Employee
-from app.models.user import User
+from app.models.ai_prediction import AIPrediction
 
 
 def get_insights(db: Session):
@@ -24,13 +23,8 @@ def get_insights(db: Session):
     total_employees = employee_data["total_employees"]
     active_employees = employee_data["active_employees"]
 
-    department_summary = employee_data[
-        "department_count"
-    ]
-
-    designation_summary = employee_data[
-        "designation_count"
-    ]
+    department_summary = employee_data["department_count"]
+    designation_summary = employee_data["designation_count"]
 
     # =====================================================
     # 2. ATTENDANCE ANALYTICS
@@ -38,9 +32,7 @@ def get_insights(db: Session):
 
     attendance_data = get_analytics(db)
 
-    attendance_percentage = attendance_data[
-        "attendance_percentage"
-    ]
+    attendance_percentage = attendance_data["attendance_percentage"]
 
     # =====================================================
     # 3. SHIFT ANALYTICS
@@ -60,10 +52,7 @@ def get_insights(db: Session):
 
     leave_anomalies = []
 
-    employees = (
-        db.query(Employee)
-        .all()
-    )
+    employees = db.query(Employee).all()
 
     for employee in employees:
 
@@ -73,10 +62,7 @@ def get_insights(db: Session):
         )
 
         if leave_result["anomaly_detected"]:
-
-            leave_anomalies.append(
-                leave_result
-            )
+            leave_anomalies.append(leave_result)
 
     # =====================================================
     # 6. REFERRAL ANOMALIES
@@ -92,10 +78,7 @@ def get_insights(db: Session):
         )
 
         if referral_result["anomaly_detected"]:
-
-            referral_anomalies.append(
-                referral_result
-            )
+            referral_anomalies.append(referral_result)
 
     # =====================================================
     # 7. COMBINED ANOMALIES
@@ -104,15 +87,11 @@ def get_insights(db: Session):
     anomaly_data = {
         "attendance": attendance_anomalies,
         "leave": {
-            "total_anomalies": len(
-                leave_anomalies
-            ),
+            "total_anomalies": len(leave_anomalies),
             "anomalies": leave_anomalies,
         },
         "referral": {
-            "total_anomalies": len(
-                referral_anomalies
-            ),
+            "total_anomalies": len(referral_anomalies),
             "anomalies": referral_anomalies,
         },
     }
@@ -121,27 +100,26 @@ def get_insights(db: Session):
     # 8. AI PREDICTION
     # =====================================================
 
-    # Use the first available employee user
-    employee_user = (
-        db.query(User)
-        .filter(
-            User.role.ilike("Employee")
-        )
+    # Read the latest saved AI prediction.
+    # Do not generate a new prediction here.
+    latest_prediction = (
+        db.query(AIPrediction)
+        .order_by(AIPrediction.prediction_date.desc())
         .first()
     )
 
-    if employee_user:
+    if latest_prediction:
 
-        ai_prediction = get_ai_prediction(
-            db,
-            employee_user.id
-        )
+        ai_prediction = {
+            "prediction": latest_prediction.prediction,
+            "confidence": float(latest_prediction.confidence),
+        }
 
     else:
 
         ai_prediction = {
             "prediction": "No Data",
-            "confidence": 0
+            "confidence": 0,
         }
 
     # =====================================================

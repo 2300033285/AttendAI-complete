@@ -1,3 +1,4 @@
+
 from sqlalchemy.orm import Session
 
 from app.models.shift import Shift
@@ -8,59 +9,104 @@ def get_shift_analytics(db: Session):
     shifts = db.query(Shift).all()
     attendance_records = db.query(Attendance).all()
 
-    if not shifts:
-        return {
-            "total_shifts": 0,
-            "completed_shifts": 0,
-            "missed_shifts": 0,
-            "average_shift_hours": 0,
-            "overtime_hours": 0,
-            "shift_wise_attendance": {},
-        }
-
-    # Count attendance records, not shift definitions.
+    # Count attendance records by status.
     completed_shifts = sum(
-        1 for record in attendance_records
-        if (record.status or "").strip().lower() == "present"
+        1
+        for record in attendance_records
+        if (record.status or "").strip().lower() in ("present", "late")
     )
 
     missed_shifts = sum(
-        1 for record in attendance_records
+        1
+        for record in attendance_records
         if (record.status or "").strip().lower() == "absent"
     )
 
-    # Calculate average duration of defined shifts.
+    # Return zero shift metrics if no shifts are configured.
+    if not shifts:
+        total_overtime_minutes = 0
+
+        for record in attendance_records:
+            status = (record.status or "").strip().lower()
+
+            if (
+                status in ("present", "late")
+                and record.check_in is not None
+                and record.check_out is not None
+            ):
+                start = (
+                    record.check_in.hour * 60
+                    + record.check_in.minute
+                )
+                end = (
+                    record.check_out.hour * 60
+                    + record.check_out.minute
+                )
+
+                if end <= start:
+                    end += 24 * 60
+
+                total_overtime_minutes += max(0, end - start - 480)
+
+        return {
+            "total_shifts": 0,
+            "completed_shifts": completed_shifts,
+            "missed_shifts": missed_shifts,
+            "average_shift_hours": 0,
+            "overtime_hours": round(total_overtime_minutes / 60, 2),
+            "shift_wise_attendance": {},
+        }
+
+    # Calculate average duration of configured shifts.
     total_shift_minutes = 0
     valid_shift_count = 0
 
     for shift in shifts:
-        if shift.start_time and shift.end_time:
-            start = shift.start_time.hour * 60 + shift.start_time.minute
-            end = shift.end_time.hour * 60 + shift.end_time.minute
+        if shift.start_time is None or shift.end_time is None:
+            continue
 
-            if end <= start:
-                end += 24 * 60
+        start = (
+            shift.start_time.hour * 60
+            + shift.start_time.minute
+        )
+        end = (
+            shift.end_time.hour * 60
+            + shift.end_time.minute
+        )
 
-            total_shift_minutes += end - start
-            valid_shift_count += 1
+        if end <= start:
+            end += 24 * 60
+
+        total_shift_minutes += end - start
+        valid_shift_count += 1
 
     average_shift_hours = (
         round(total_shift_minutes / valid_shift_count / 60, 2)
-        if valid_shift_count else 0
+        if valid_shift_count
+        else 0
     )
 
-    # Calculate overtime for present attendance records.
+    # Calculate overtime beyond 8 hours per attendance record.
     total_overtime_minutes = 0
 
     for record in attendance_records:
-        if (
-            (record.status or "").strip().lower() == "present"
-            and record.check_in
-            and record.check_out
-        ):
-            start = record.check_in.hour * 60 + record.check_in.minute
-            end = record.check_out.hour * 60 + record.check_out.minute
+        status = (record.status or "").strip().lower()
 
+        if (
+            status in ("present", "late")
+            and record.check_in is not None
+            and record.check_out is not None
+        ):
+            start = (
+                record.check_in.hour * 60
+                + record.check_in.minute
+            )
+            end = (
+                record.check_out.hour * 60
+                + record.check_out.minute
+            )
+
+            # Handle overnight attendance.
             if end <= start:
                 end += 24 * 60
 
@@ -69,15 +115,15 @@ def get_shift_analytics(db: Session):
 
     overtime_hours = round(total_overtime_minutes / 60, 2)
 
-    # Match records to shifts using check-in time.
-    # Attendance has no shift_id, so this is an estimate.
+    # Estimate shift-wise attendance using check-in time.
+    # Exact assignment requires a shift_id in the Attendance model.
     shift_wise_attendance = {}
 
     for shift in shifts:
         present_count = 0
         absent_count = 0
 
-        if not shift.start_time or not shift.end_time:
+        if shift.start_time is None or shift.end_time is None:
             shift_wise_attendance[shift.shift_name] = {
                 "present": 0,
                 "absent": 0,
@@ -85,27 +131,39 @@ def get_shift_analytics(db: Session):
             }
             continue
 
-        start = shift.start_time.hour * 60 + shift.start_time.minute
-        end = shift.end_time.hour * 60 + shift.end_time.minute
+        start = (
+            shift.start_time.hour * 60
+            + shift.start_time.minute
+        )
+        end = (
+            shift.end_time.hour * 60
+            + shift.end_time.minute
+        )
 
         for record in attendance_records:
-            if not record.check_in:
+            if record.check_in is None:
                 continue
 
-            check_in = record.check_in.hour * 60 + record.check_in.minute
+            check_in = (
+                record.check_in.hour * 60
+                + record.check_in.minute
+            )
 
+            # Match normal and overnight shifts.
             if end > start:
                 matches = start <= check_in < end
             else:
                 matches = check_in >= start or check_in < end
 
-            if matches:
-                status = (record.status or "").strip().lower()
+            if not matches:
+                continue
 
-                if status == "present":
-                    present_count += 1
-                elif status == "absent":
-                    absent_count += 1
+            status = (record.status or "").strip().lower()
+
+            if status in ("present", "late"):
+                present_count += 1
+            elif status == "absent":
+                absent_count += 1
 
         shift_wise_attendance[shift.shift_name] = {
             "present": present_count,
